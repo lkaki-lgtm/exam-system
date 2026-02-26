@@ -1,0 +1,216 @@
+<div class="space-y-8">
+  <!-- Welcome Header with Gradient -->
+  <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white">
+    <h1 class="text-4xl font-bold mb-2">Welcome back, <%= session[:user_name] %>! 👋</h1>
+    <p class="text-blue-100 text-lg">Ready to test your knowledge today?</p>
+  </div>
+
+  <!-- Stats Cards with Colors -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Active Exams Card -->
+    <div class="bg-gradient-to-br from-green-400 to-green-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-sm font-medium">Active Exams</p>
+          <p class="text-4xl font-bold mt-2"><%= @active_exams.count %></p>
+        </div>
+        <div class="bg-white/30 rounded-full p-4 backdrop-blur-sm">
+          <span class="text-3xl">📝</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Exams Card -->
+    <div class="bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm font-medium">Upcoming Exams</p>
+          <p class="text-4xl font-bold mt-2"><%= @upcoming_exams.count %></p>
+        </div>
+        <div class="bg-white/30 rounded-full p-4 backdrop-blur-sm">
+          <span class="text-3xl">📅</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Completed Exams Card -->
+    <div class="bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-sm font-medium">Completed</p>
+          <p class="text-4xl font-bold mt-2"><%= @my_attempts.count %></p>
+        </div>
+        <div class="bg-white/30 rounded-full p-4 backdrop-blur-sm">
+          <span class="text-3xl">🏆</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Exams Section -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-green-500 to-green-600 px-8 py-5">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>🔥</span> Active Exams Now
+      </h2>
+    </div>
+    
+    <div class="p-6">
+      <% if @active_exams.empty? %>
+        <div class="text-center py-12 bg-gray-50 rounded-xl">
+          <div class="text-7xl mb-4">😴</div>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">No Active Exams</h3>
+          <p class="text-gray-500">Take a break or check back later!</p>
+        </div>
+      <% else %>
+        <div class="grid gap-4">
+          <% @active_exams.each do |exam| %>
+            <div class="border-l-4 border-green-500 bg-green-50 p-6 rounded-xl hover:shadow-md transition">
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex-1">
+                  <h3 class="text-xl font-bold text-gray-800"><%= exam["title"] %></h3>
+                  <p class="text-gray-600 mt-1"><%= exam["description"] %></p>
+                  <div class="flex flex-wrap gap-4 mt-3">
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-green-700">
+                      ⏱️ <%= exam["duration_minutes"] %> mins
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-blue-700">
+                      📝 <%= exam["questions"].count %> questions
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-purple-700">
+                      ⏰ Ends at <%= exam["end_time"] %>
+                    </span>
+                  </div>
+                </div>
+                <a href="/student/exam/<%= exam["id"] %>" 
+                   class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-xl font-semibold 
+                          transition transform hover:scale-105 shadow-lg hover:shadow-xl whitespace-nowrap">
+                  Start Exam →
+                </a>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Upcoming Exams Section -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-5">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>📅</span> Upcoming Exams
+      </h2>
+    </div>
+    
+    <div class="p-6">
+      <% if @upcoming_exams.empty? %>
+        <div class="text-center py-12 bg-gray-50 rounded-xl">
+          <div class="text-7xl mb-4">📭</div>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">No Upcoming Exams</h3>
+          <p class="text-gray-500">Check back later for new exams!</p>
+        </div>
+      <% else %>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <% @upcoming_exams.each do |exam| %>
+            <div class="border border-blue-200 bg-blue-50/50 p-5 rounded-xl hover:shadow-md transition">
+              <div class="flex items-start gap-3">
+                <div class="bg-blue-100 rounded-full p-3">
+                  <span class="text-2xl">📌</span>
+                </div>
+                <div class="flex-1">
+                  <h3 class="font-bold text-gray-800"><%= exam["title"] %></h3>
+                  <p class="text-sm text-gray-600 mt-1"><%= exam["description"] %></p>
+                  <div class="flex items-center gap-2 mt-2 text-sm">
+                    <span class="text-blue-600">📅 <%= exam["scheduled_date"] %></span>
+                    <span class="text-gray-400">|</span>
+                    <span class="text-blue-600">⏰ <%= exam["start_time"] %></span>
+                  </div>
+                  <div class="mt-2 flex gap-2">
+                    <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
+                      <%= exam["questions"].count %> questions
+                    </span>
+                    <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
+                      <%= exam["duration_minutes"] %> mins
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Recent Results Section -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-8 py-5">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>🏆</span> Your Recent Results
+      </h2>
+    </div>
+    
+    <div class="p-6">
+      <% if @my_attempts.empty? %>
+        <div class="text-center py-12 bg-gray-50 rounded-xl">
+          <div class="text-7xl mb-4">📊</div>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">No Exams Taken Yet</h3>
+          <p class="text-gray-500 mb-6">Start your first exam to see results here!</p>
+          <a href="/student/dashboard#active-exams" class="bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-600 transition">
+            Browse Active Exams
+          </a>
+        </div>
+      <% else %>
+        <div class="space-y-4">
+          <% @my_attempts.last(5).each do |attempt| %>
+            <% exam = @schedules.find { |s| s["id"] == attempt["schedule_id"] } %>
+            <% if exam %>
+              <% percentage = (attempt["score"].to_f / exam["questions"].count * 100).round %>
+              <div class="bg-gray-50 rounded-xl p-5 hover:shadow-md transition">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <h3 class="font-bold text-gray-800"><%= exam["title"] %></h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                      <%= attempt["end_time"] ? attempt["end_time"][0..10] : attempt["start_time"][0..10] %>
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-4">
+                    <!-- Score Circle -->
+                    <div class="relative w-16 h-16">
+                      <svg class="w-16 h-16 transform -rotate-90">
+                        <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="none"
+                                class="text-gray-200"/>
+                        <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="none"
+                               stroke-dasharray="<%= 2 * Math::PI * 28 %>"
+                               stroke-dashoffset="<%= 2 * Math::PI * 28 * (1 - percentage/100.0) %>"
+                               class="<%= percentage >= 70 ? 'text-green-500' : (percentage >= 40 ? 'text-yellow-500' : 'text-red-500') %>"/>
+                      </svg>
+                      <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="text-sm font-bold"><%= %>%</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <span class="text-2xl font-bold <%= percentage >= 70 ? 'text-green-500' : (percentage >= 40 ? 'text-yellow-500' : 'text-red-500') %>">
+                        <%= attempt["score"] %>/<%= exam["questions"].count %>
+                      </span>
+                      <div class="text-sm text-gray-500">Score</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+          
+          <% if @my_attempts.count > 5 %>
+            <div class="text-center mt-4">
+              <a href="/student/results" class="text-purple-500 hover:text-purple-600 font-semibold">
+                View All Results →
+              </a>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

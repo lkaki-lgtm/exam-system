@@ -1,0 +1,74 @@
+<div class="space-y-8">
+  <h1 class="text-4xl font-bold text-gray-800">📋 Available Exams</h1>
+
+  <% if @questions.empty? %>
+    <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+      <div class="text-7xl mb-4">📭</div>
+      <h3 class="text-2xl font-bold text-gray-800 mb-2">No Exams Available</h3>
+      <p class="text-gray-600 mb-6">Please check back later or contact the administrator.</p>
+      <a href="/admin" class="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition">
+        Go to Admin Panel
+      </a>
+    </div>
+  <% else %>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Exam Card -->
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition">
+        <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
+          <h3 class="text-xl font-bold text-white">General Knowledge Exam</h3>
+        </div>
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-2 text-gray-600">
+              <span class="text-2xl">📝</span>
+              <span><%= @questions.length %> Questions</span>
+            </div>
+            <div class="flex items-center space-x-2 text-gray-600">
+              <span class="text-2xl">⏰</span>
+              <span>5 Minutes</span>
+            </div>
+          </div>
+          
+          <div class="mb-6">
+            <h4 class="font-semibold text-gray-700 mb-2">Topics Covered:</h4>
+            <div class="flex flex-wrap gap-2">
+              <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">General Knowledge</span>
+              <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">Basic Facts</span>
+              <span class="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">Multiple Choice</span>
+            </div>
+          </div>
+          
+          <a href="/exam" 
+             class="block w-full bg-green-500 text-white text-center px-4 py-3 rounded-lg 
+                    font-semibold hover:bg-green-600 transition transform hover:scale-105">
+            Start Exam
+          </a>
+        </div>
+      </div>
+
+      <!-- Coming Soon Card -->
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden opacity-75">
+        <div class="bg-gradient-to-r from-gray-500 to-gray-600 px-6 py-4">
+          <h3 class="text-xl font-bold text-white">More Exams Coming Soon</h3>
+        </div>
+        <div class="p-6 text-center">
+          <div class="text-6xl mb-4">🚀</div>
+          <p class="text-gray-600">New exams are being prepared</p>
+          <p class="text-sm text-gray-500 mt-2">Check back later for more subjects</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+      <h4 class="font-bold text-blue-800 mb-2">📌 Exam Instructions</h4>
+      <ul class="list-disc list-inside text-blue-700 space-y-1">
+        <li>You have 5 minutes to complete the exam</li>
+        <li>Each question has only one correct answer</li>
+        <li>You can navigate between questions using Next/Previous buttons</li>
+        <li>The exam will auto-submit when time runs out</li>
+        <li>Results will be saved to your dashboard</li>
+      </ul>
+    </div>
+  <% end %>
+</div>

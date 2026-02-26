@@ -1,0 +1,173 @@
+<div class="max-w-3xl mx-auto">
+  <!-- Exam Header -->
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800">📝 Exam</h1>
+        <p class="text-gray-600 mt-1"><%= @questions.length %> questions · Multiple Choice</p>
+      </div>
+      <div class="bg-red-50 rounded-lg px-6 py-3 text-center">
+        <div class="text-sm text-red-600 font-semibold">Time Remaining</div>
+        <div class="text-3xl font-bold text-red-700 font-mono" id="timer">05:00</div>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="mt-6">
+      <div class="flex justify-between text-sm text-gray-600 mb-2">
+        <span>Progress</span>
+        <span id="question-counter">1/<%= @questions.length %></span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-3">
+        <div class="bg-green-500 rounded-full h-3 transition-all duration-300" 
+             id="progress-bar" style="width: <%= 100.0/@questions.length %>%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question Cards -->
+  <form id="examForm" action="/exam/submit" method="post">
+    <% @questions.each_with_index do |q, index| %>
+      <div class="question-card bg-white rounded-xl shadow-lg p-8 mb-6 <%= 'hidden' if index > 0 %>" 
+           data-question="<%= index %>">
+        <div class="flex items-start mb-6">
+          <span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0">
+            <%= index + 1 %>
+          </span>
+          <h2 class="text-xl font-semibold text-gray-800"><%= q["text"] %></h2>
+        </div>
+        
+        <div class="space-y-4 ml-11">
+          <% q["options"].each do |option| %>
+            <label class="option-card block p-4 rounded-xl border-2 border-gray-200 
+                         hover:border-green-500 hover:bg-green-50 cursor-pointer 
+                         transition-all duration-200">
+              <div class="flex items-center">
+                <input type="radio" name="q<%= index %>" value="<%= option %>" 
+                       class="w-5 h-5 text-green-600 focus:ring-green-500">
+                <span class="ml-3 text-lg text-gray-700"><%= option %></span>
+              </div>
+            </label>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Navigation Buttons -->
+    <div class="flex justify-between mt-8">
+      <button type="button" id="prevBtn" 
+              class="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold 
+                     hover:bg-gray-600 transition disabled:opacity-50 
+                     disabled:cursor-not-allowed disabled:hover:bg-gray-500">
+        ← Previous
+      </button>
+      <button type="button" id="nextBtn" 
+              class="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold 
+                     hover:bg-blue-600 transition">
+        Next →
+      </button>
+      <button type="submit" id="submitBtn" 
+              class="px-8 py-3 bg-green-500 text-white rounded-lg font-semibold 
+                     hover:bg-green-600 transition hidden">
+        Submit Exam
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Timer
+  let timeLeft = 300;
+  const timerDisplay = document.getElementById('timer');
+  
+  function updateTimer() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (timeLeft <= 0) {
+      alert('⏰ Time is up! Submitting your exam...');
+      document.getElementById('examForm').submit();
+    }
+    timeLeft--;
+  }
+  
+  setInterval(updateTimer, 1000);
+
+  // Question Navigation
+  const questions = document.querySelectorAll('.question-card');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  const progressBar = document.getElementById('progress-bar');
+  const questionCounter = document.getElementById('question-counter');
+  let currentQuestion = 0;
+
+  function showQuestion(index) {
+    questions.forEach((q, i) => {
+      q.classList.toggle('hidden', i !== index);
+    });
+    
+    prevBtn.disabled = index === 0;
+    
+    if (index === questions.length - 1) {
+      nextBtn.classList.add('hidden');
+      submitBtn.classList.remove('hidden');
+    } else {
+      nextBtn.classList.remove('hidden');
+      submitBtn.classList.add('hidden');
+    }
+    
+    const progress = ((index + 1) / questions.length) * 100;
+    progressBar.style.width = progress + '%';
+    questionCounter.textContent = `${index + 1}/${questions.length}`;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentQuestion > 0) {
+      currentQuestion--;
+      showQuestion(currentQuestion);
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    const currentRadio = document.querySelector(`input[name="q${currentQuestion}"]:checked`);
+    if (!currentRadio) {
+      alert('Please answer this question before proceeding.');
+      return;
+    }
+    
+    if (currentQuestion < questions.length - 1) {
+      currentQuestion++;
+      showQuestion(currentQuestion);
+    }
+  });
+
+  // Highlight selected option
+  document.querySelectorAll('input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      document.querySelectorAll('.option-card').forEach(card => {
+        card.classList.remove('border-green-500', 'bg-green-50');
+      });
+      this.closest('.option-card').classList.add('border-green-500', 'bg-green-50');
+    });
+  });
+
+  // Form submission validation
+  document.getElementById('examForm').addEventListener('submit', function(e) {
+    let allAnswered = true;
+    for (let i = 0; i < questions.length; i++) {
+      if (!document.querySelector(`input[name="q${i}"]:checked`)) {
+        allAnswered = false;
+        break;
+      }
+    }
+    
+    if (!allAnswered) {
+      e.preventDefault();
+      alert('Please answer all questions before submitting.');
+    } else if (!confirm('Are you sure you want to submit your exam?')) {
+      e.preventDefault();
+    }
+  });
+</script>

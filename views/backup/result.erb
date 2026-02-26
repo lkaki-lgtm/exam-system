@@ -1,0 +1,63 @@
+<div class="max-w-2xl mx-auto">
+  <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+    <!-- Result Header -->
+    <div class="bg-gradient-to-r from-green-500 to-green-600 px-8 py-12 text-center text-white">
+      <div class="text-7xl mb-4">📊</div>
+      <h1 class="text-4xl font-bold mb-2">Exam Complete!</h1>
+      <p class="text-green-100">Here's how you performed</p>
+    </div>
+
+    <!-- Score Display -->
+    <div class="p-8">
+      <div class="text-center mb-8">
+        <div class="text-8xl font-bold text-gray-800 mb-4">
+          <%= @score %>/<%= @total %>
+        </div>
+        <div class="text-2xl text-gray-600 mb-2">
+          <%= @percentage %>%
+        </div>
+        
+        <!-- Performance Badge -->
+        <% if @percentage >= 70 %>
+          <div class="inline-block bg-green-100 text-green-800 px-6 py-3 rounded-full font-semibold">
+            🎉 Excellent Performance!
+          </div>
+        <% elsif @percentage >= 40 %>
+          <div class="inline-block bg-yellow-100 text-yellow-800 px-6 py-3 rounded-full font-semibold">
+            👍 Good Job! Keep Practicing
+          </div>
+        <% else %>
+          <div class="inline-block bg-red-100 text-red-800 px-6 py-3 rounded-full font-semibold">
+            💪 Keep Learning! Try Again
+          </div>
+        <% end %>
+      </div>
+
+      <!-- Statistics -->
+      <div class="grid grid-cols-2 gap-4 mb-8">
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+          <div class="text-sm text-gray-500">Correct Answers</div>
+          <div class="text-2xl font-bold text-green-600"><%= @score %></div>
+        </div>
+        <div class="bg-gray-50 rounded-lg p-4 text-center">
+          <div class="text-sm text-gray-500">Incorrect</div>
+          <div class="text-2xl font-bold text-red-600"><%= @total - @score %></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+        <a href="/exams" 
+           class="bg-green-500 text-white px-8 py-3 rounded-lg font-semibold 
+                  hover:bg-green-600 transition text-center">
+          Take Another Exam
+        </a>
+        <a href="/dashboard" 
+           class="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold 
+                  hover:bg-gray-600 transition text-center">
+          Go to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

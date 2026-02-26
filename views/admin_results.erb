@@ -1,0 +1,261 @@
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">📊 Exam Results Dashboard</h1>
+    <a href="/admin/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-blue-100 text-sm">Total Exams</p>
+      <p class="text-3xl font-bold mt-2"><%= @schedules.count %></p>
+    </div>
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-green-100 text-sm">Total Attempts</p>
+      <p class="text-3xl font-bold mt-2"><%= @attempts.count %></p>
+    </div>
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-purple-100 text-sm">Total Students</p>
+      <p class="text-3xl font-bold mt-2"><%= @students.count %></p>
+    </div>
+    <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-yellow-100 text-sm">Avg. Score</p>
+      <% 
+        total_percentage = 0
+        valid_attempts = @attempts.select { |a| a["calculated_percentage"] }
+        avg = valid_attempts.any? ? (valid_attempts.sum { |a| a["calculated_percentage"] } / valid_attempts.count).round(2) : 0
+      %>
+      <p class="text-3xl font-bold mt-2"><%= avg %>%</p>
+    </div>
+  </div>
+
+  <!-- Exam-wise Results -->
+  <% @schedules.each do |schedule| %>
+    <% exam_attempts = @attempts.select { |a| a["schedule_id"] == schedule["id"] } %>
+    <% next if exam_attempts.empty? %>
+    
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden" id="exam-<%= schedule["id"] %>">
+      <!-- Exam Header -->
+      <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 px-8 py-5">
+        <div class="flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-bold text-white"><%= schedule["title"] %></h2>
+            <p class="text-indigo-200 mt-1"><%= schedule["description"] %></p>
+          </div>
+          <div class="text-right">
+            <span class="bg-white text-indigo-800 px-4 py-2 rounded-lg font-semibold">
+              <%= exam_attempts.count %> Students
+            </span>
+          </div>
+        </div>
+        <div class="flex gap-4 mt-3 text-sm text-indigo-200">
+          <span>📅 <%= schedule["scheduled_date"] %></span>
+          <span>⏰ <%= schedule["start_time"] %> - <%= schedule["end_time"] %></span>
+          <span>📝 <%= schedule["questions"].count %> Questions</span>
+        </div>
+      </div>
+
+      <!-- Exam Statistics -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-6 bg-gray-50 border-b">
+        <% 
+          scores = exam_attempts.map { |a| a["score"].to_f }
+          total_possible = schedule["questions"].count.to_f
+          percentages = exam_attempts.map { |a| total_possible > 0 ? (a["score"].to_f / total_possible * 100).round(2) : 0 }
+          avg_score = scores.any? ? (scores.sum / scores.count).round(2) : 0
+          avg_percentage = percentages.any? ? (percentages.sum / percentages.count).round(2) : 0
+          max_score = scores.max || 0
+          min_score = scores.min || 0
+        %>
+        <div class="bg-green-50 rounded-lg p-4">
+          <p class="text-sm text-green-700 font-semibold">Class Average</p>
+          <p class="text-2xl font-bold text-green-800"><%= sprintf("%.2f", avg_score) %>/<%= schedule["questions"].count %> (<%= sprintf("%.1f", avg_percentage) %>% )</p>
+        </div>
+        <div class="bg-blue-50 rounded-lg p-4">
+          <p class="text-sm text-blue-700 font-semibold">Highest Score</p>
+          <p class="text-2xl font-bold text-blue-800"><%= sprintf("%.2f", max_score) %>/<%= schedule["questions"].count %></p>
+        </div>
+        <div class="bg-yellow-50 rounded-lg p-4">
+          <p class="text-sm text-yellow-700 font-semibold">Lowest Score</p>
+          <p class="text-2xl font-bold text-yellow-800"><%= sprintf("%.2f", min_score) %>/<%= schedule["questions"].count %></p>
+        </div>
+      </div>
+
+      <!-- Students Table with Decimal Scores -->
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Registration No.</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Student Name</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Email</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Score (Decimal)</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Percentage</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Date</th>
+              <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <% exam_attempts.each do |attempt| %>
+              <% student = @students.find { |s| s["id"] == attempt["student_id"] } %>
+              <% percentage = schedule["questions"].count > 0 ? 
+                   ((attempt["score"].to_f / schedule["questions"].count) * 100).round(2) : 0 %>
+              <% decimal_score = sprintf("%.2f", attempt["score"].to_f) %>
+              <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 text-sm font-mono text-gray-800">
+                  <%= student ? student["reg_number"] : "N/A" %>
+                </td>
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                  <%= student ? student["name"] : "Unknown" %>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <%= student ? student["email"] : "N/A" %>
+                </td>
+                <td class="px-6 py-4 text-sm font-bold">
+                  <div>
+                    <span class="<%= percentage >= 70 ? 'text-green-600' : (percentage >= 40 ? 'text-yellow-600' : 'text-red-600') %>">
+                      <%= decimal_score %> / <%= schedule["questions"].count %>
+                    </span>
+                  </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-semibold 
+                      <%= percentage >= 70 ? 'text-green-600' : (percentage >= 40 ? 'text-yellow-600' : 'text-red-600') %>">
+                      <%= sprintf("%.1f", percentage) %>%
+                    </span>
+                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                      <div class="<%= percentage >= 70 ? 'bg-green-500' : (percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500') %> 
+                            rounded-full h-2" style="width: <%= percentage %>%"></div>
+                    </div>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <% 
+                    date_str = attempt["end_time"] ? attempt["end_time"] : attempt["start_time"]
+                    formatted_date = date_str ? date_str[0..9] : "N/A"
+                  %>
+                  <%= formatted_date %>
+                </td>
+                <td class="px-6 py-4">
+                  <span class="px-3 py-1 <%= attempt["status"] == "completed" ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %> 
+                               rounded-full text-xs font-semibold">
+                    <%= attempt["status"].upcase %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+          <!-- Class Average Row -->
+          <tfoot class="bg-gray-50 border-t-2 border-gray-300">
+            <tr>
+              <td colspan="3" class="px-6 py-4 text-sm font-bold text-gray-700">Class Average</td>
+              <td class="px-6 py-4 text-sm font-bold text-gray-700">
+                <%= sprintf("%.2f", avg_score) %> / <%= schedule["questions"].count %>
+              </td>
+              <td class="px-6 py-4 text-sm font-bold text-gray-700">
+                <%= sprintf("%.1f", avg_percentage) %>%
+              </td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <!-- Single Download Button -->
+      <div class="bg-gray-50 px-6 py-4 border-t flex justify-end">
+        <button onclick='exportExamToCSV("<%= schedule["id"] %>", <%= exam_attempts.to_json.gsub("'", "\\\\'") %>, <%= @students.to_json.gsub("'", "\\\\'") %>, <%= schedule.to_json.gsub("'", "\\\\'") %>)' 
+                class="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 transition flex items-center gap-2">
+          <span>📥</span> Download CSV
+        </button>
+      </div>
+    </div>
+  <% end %>
+
+  <% if @attempts.empty? %>
+    <div class="bg-white rounded-xl shadow-lg p-12 text-center">
+      <div class="text-7xl mb-4">📊</div>
+      <h3 class="text-2xl font-bold text-gray-800 mb-2">No Results Yet</h3>
+      <p class="text-gray-600">Students haven't taken any exams.</p>
+    </div>
+  <% end %>
+</div>
+
+<script>
+function exportExamToCSV(scheduleId, attempts, students, schedule) {
+  // Prepare CSV content with BOM for Excel
+  let csv = "\uFEFFRegistration No.,Student Name,Email,Score (Decimal),Percentage,Date,Status\n";
+  
+  // Filter attempts for this exam
+  const examAttempts = attempts.filter(a => a.schedule_id === scheduleId);
+  
+  // Process each attempt
+  examAttempts.forEach(attempt => {
+    const student = students.find(s => s.id === attempt.student_id);
+    const totalQuestions = schedule.questions.length;
+    const scoreValue = attempt.score || 0;
+    const percentage = totalQuestions > 0 ? ((scoreValue / totalQuestions) * 100).toFixed(2) : "0.00";
+    
+    // Format score with 2 decimal places for CSV
+    const formattedScore = parseFloat(scoreValue).toFixed(2);
+    const score = `${formattedScore}/${totalQuestions}`;
+    
+    // Format date properly (YYYY-MM-DD)
+    let dateStr = attempt.end_time || attempt.start_time || "";
+    let formattedDate = "N/A";
+    if (dateStr && dateStr.length >= 10) {
+      formattedDate = dateStr.substring(0, 10);
+    }
+    
+    // Get values with defaults
+    const regNo = student?.reg_number || "N/A";
+    const studentName = student?.name || "Unknown";
+    const email = student?.email || "N/A";
+    const status = attempt.status?.toUpperCase() || "UNKNOWN";
+    
+    // Escape fields that might contain commas
+    const escapeField = (field) => {
+      if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+        return `"${field.replace(/"/g, '""')}"`;
+      }
+      return field;
+    };
+    
+    // Add row to CSV
+    csv += [
+      escapeField(regNo),
+      escapeField(studentName),
+      escapeField(email),
+      escapeField(score),
+      escapeField(percentage),
+      escapeField(formattedDate),
+      escapeField(status)
+    ].join(',') + '\n';
+  });
+  
+  // Calculate and add class average
+  if (examAttempts.length > 0) {
+    const totalQuestions = schedule.questions.length;
+    const avgScore = (examAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / examAttempts.length).toFixed(2);
+    const avgPercentage = ((parseFloat(avgScore) / totalQuestions) * 100).toFixed(2);
+    
+    csv += `\nClass Average,,,${avgScore}/${totalQuestions},${avgPercentage},,\n`;
+  }
+  
+  // Download file
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  
+  // Create filename from exam title
+  const examTitle = schedule.title.replace(/[^a-z0-9]/gi, '_');
+  link.setAttribute('download', `${examTitle}_results.csv`);
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+</script>

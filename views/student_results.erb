@@ -1,0 +1,54 @@
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">📊 My Results</h1>
+    <a href="/student/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="bg-gray-50 px-6 py-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">Your Exam History</h2>
+    </div>
+
+    <% if @attempts.empty? %>
+      <div class="text-center py-12">
+        <p class="text-gray-500">You haven't taken any exams yet.</p>
+        <a href="/student/dashboard" class="inline-block mt-4 bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition">
+          Browse Exams
+        </a>
+      </div>
+    <% else %>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Exam</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Score</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Percentage</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <% @attempts.each do |attempt| %>
+              <% schedule = @schedules.find { |s| s["id"] == attempt["schedule_id"] } %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm text-gray-800"><%= schedule ? schedule["title"] : "Unknown Exam" %></td>
+                <td class="px-6 py-4 text-sm text-gray-800"><%= attempt["score"] %>/<%= schedule ? schedule["questions"].count : "?" %></td>
+                <td class="px-6 py-4">
+                  <% if attempt["score"] && schedule %>
+                    <% percentage = (attempt["score"].to_f / schedule["questions"].count * 100).round %>
+                    <span class="px-3 py-1 <%= percentage >= 70 ? 'bg-green-100 text-green-800' : (percentage >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') %> rounded-full text-xs font-semibold">
+                      <%= %>%%
+                    </span>
+                  <% end %>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= attempt["end_time"] ? attempt["end_time"][0..9] : attempt["start_time"][0..9] %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

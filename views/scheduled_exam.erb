@@ -1,0 +1,129 @@
+<div class="max-w-3xl mx-auto">
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+    <div class="flex justify-between items-center">
+      <h1 class="text-3xl font-bold text-gray-800"><%= @exam["title"] %></h1>
+      <div class="bg-red-100 px-6 py-3 rounded-lg">
+        <div class="text-sm text-red-600">Time Remaining</div>
+        <div class="text-3xl font-bold text-red-700 font-mono" id="timer">
+          <%= sprintf("%02d", @exam["duration_minutes"]) %>:00
+        </div>
+      </div>
+    </div>
+    
+    <p class="text-gray-600 mt-2"><%= @exam["description"] %></p>
+    
+    <div class="mt-4 bg-blue-50 p-4 rounded-lg">
+      <p class="text-sm text-blue-800">
+        ⏰ Exam ends at <%= @exam["end_time"] %> · 
+        <%= @questions.count %> questions
+      </p>
+    </div>
+  </div>
+  
+  <form id="examForm" action="/student/exam/submit" method="post">
+    <input type="hidden" name="attempt_id" value="<%= @attempt["id"] %>">
+    <input type="hidden" name="questions" value='<%= @questions.to_json %>'>
+    
+    <% @questions.each_with_index do |q, index| %>
+      <div class="question-card bg-white rounded-xl shadow-lg p-8 mb-6 <%= 'hidden' if index > 0 %>">
+        <div class="flex items-start mb-6">
+          <span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">
+            <%= index + 1 %>
+          </span>
+          <h2 class="text-xl font-semibold text-gray-800"><%= q["text"] %></h2>
+        </div>
+        
+        <div class="space-y-4 ml-11">
+          <% q["options"].each do |option| %>
+            <label class="block p-4 rounded-xl border-2 border-gray-200 hover:border-green-500 cursor-pointer">
+              <div class="flex items-center">
+                <input type="radio" name="q<%= index %>" value="<%= option %>" 
+                       class="w-5 h-5 text-green-600" required>
+                <span class="ml-3 text-lg text-gray-700"><%= option %></span>
+              </div>
+            </label>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    
+    <div class="flex justify-between mt-8">
+      <button type="button" id="prevBtn" 
+              class="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 
+                     transition disabled:opacity-50" disabled>
+        ← Previous
+      </button>
+      <button type="button" id="nextBtn" 
+              class="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
+        Next →
+      </button>
+      <button type="submit" id="submitBtn" 
+              class="px-8 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition hidden">
+        Submit Exam
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Timer
+  let timeLeft = <%= @exam["duration_minutes"] * 60 %>;
+  const timerDisplay = document.getElementById('timer');
+  
+  function updateTimer() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    
+    if (timeLeft <= 0) {
+      alert('Time is up! Submitting your exam...');
+      document.getElementById('examForm').submit();
+    }
+    timeLeft--;
+  }
+  
+  setInterval(updateTimer, 1000);
+  
+  // Question navigation
+  const questions = document.querySelectorAll('.question-card');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const submitBtn = document.getElementById('submitBtn');
+  let currentQuestion = 0;
+  
+  function showQuestion(index) {
+    questions.forEach((q, i) => {
+      q.classList.toggle('hidden', i !== index);
+    });
+    
+    prevBtn.disabled = index === 0;
+    
+    if (index === questions.length - 1) {
+      nextBtn.classList.add('hidden');
+      submitBtn.classList.remove('hidden');
+    } else {
+      nextBtn.classList.remove('hidden');
+      submitBtn.classList.add('hidden');
+    }
+  }
+  
+  prevBtn.addEventListener('click', () => {
+    if (currentQuestion > 0) {
+      currentQuestion--;
+      showQuestion(currentQuestion);
+    }
+  });
+  
+  nextBtn.addEventListener('click', () => {
+    const currentRadio = document.querySelector(`input[name="q${currentQuestion}"]:checked`);
+    if (!currentRadio) {
+      alert('Please answer this question before proceeding.');
+      return;
+    }
+    
+    if (currentQuestion < questions.length - 1) {
+      currentQuestion++;
+      showQuestion(currentQuestion);
+    }
+  });
+</script>

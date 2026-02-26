@@ -1,0 +1,57 @@
+<div class="min-h-[80vh] flex items-center justify-center">
+  <div class="text-center max-w-3xl mx-auto">
+    <!-- Hero Section -->
+    <div class="mb-12">
+      <div class="text-8xl mb-6 animate-bounce">📚</div>
+      <h1 class="text-5xl md:text-6xl font-bold text-gray-800 mb-4">
+        Online Examination System
+      </h1>
+      <p class="text-xl text-gray-600 mb-8">
+        Test your knowledge with our interactive examination platform
+      </p>
+      
+      <div class="flex justify-center space-x-4">
+        <a href="/login" 
+           class="bg-green-500 text-white px-8 py-4 rounded-lg text-lg font-semibold 
+                  hover:bg-green-600 transition transform hover:scale-105 
+                  shadow-lg hover:shadow-xl">
+          Get Started
+        </a>
+        <a href="/test" 
+           class="bg-gray-500 text-white px-8 py-4 rounded-lg text-lg font-semibold 
+                  hover:bg-gray-600 transition transform hover:scale-105 
+                  shadow-lg hover:shadow-xl">
+          Test Page
+        </a>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="text-4xl mb-4">⏰</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Timed Exams</h3>
+        <p class="text-gray-600">Complete exams within the specified time limit</p>
+      </div>
+      
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="text-4xl mb-4">📊</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Instant Results</h3>
+        <p class="text-gray-600">Get your scores immediately after submission</p>
+      </div>
+      
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <div class="text-4xl mb-4">💾</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">Track Progress</h3>
+        <p class="text-gray-600">View your exam history and improvement</p>
+      </div>
+    </div>
+
+    <!-- System Info -->
+    <div class="mt-16 bg-gray-800 text-white rounded-xl p-6">
+      <p class="text-lg">
+        Ruby Version: <%= RUBY_VERSION %> · Sinatra Framework · SurrealDB Database
+      </p>
+    </div>
+  </div>
+</div>
