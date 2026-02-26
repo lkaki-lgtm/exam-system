@@ -1,5 +1,6 @@
 source 'https://rubygems.org'
 gem 'sinatra'
 gem 'puma'
+gem 'rackup'
 gem 'httparty'
 ruby '3.4.8'
