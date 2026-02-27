@@ -2,6 +2,9 @@ require 'httparty'
 require 'json'
 require 'date'
 
+@supabase_url = 'https://rehlkybaxthggnwojurl.supabase.co'
+@supabase_key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlaGxreWJheHRoZ2dud29qdXJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIxOTU5MTAsImV4cCI6MjA4Nzc3MTkxMH0.pL03E5Em8cGyvdNwtYyIotz6HPZoPTvQ-x4RwZCeKus'
+
 class ExamDatabase
   include HTTParty
   base_uri 'http://localhost:8000'
