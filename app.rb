@@ -246,10 +246,10 @@ end
 
 # Student dashboard
 get '/student/dashboard' do
-  # Check if user is student
-  if session[:user_type] != "student"
-    redirect '/login?role=student'
-  end
+  redirect '/login?role=student' unless session[:user_type] == "student"
+  
+  # Update statuses first
+  db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
   
   @active_exams = db.get_active_schedules
   @upcoming_exams = db.get_upcoming_schedules
@@ -269,6 +269,18 @@ get '/student/exam/:schedule_id' do
   @schedule_id = params[:schedule_id]
   schedules = db.get_all_schedules
   @exam = schedules.find { |s| s["id"] == @schedule_id }
+
+  # Add a filter to update statuses
+before '/student/*' do
+  # Update exam statuses before any student action
+  db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
+end
+
+# Also update when accessing admin pages
+before '/admin/*' do
+  # Update exam statuses before admin actions too
+  db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
+end
   
   # Check if exam exists
   if @exam.nil?

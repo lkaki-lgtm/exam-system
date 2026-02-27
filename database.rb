@@ -23,7 +23,7 @@ class ExamDatabase
   
   # ===== FILE INITIALIZATION =====
   def create_users_table
-    @users_file = "users.json"
+    @users_file = "data/users.json"
     unless File.exist?(@users_file)
       File.write(@users_file, JSON.dump({
         "admins" => [],
@@ -33,28 +33,28 @@ class ExamDatabase
   end
   
   def create_exams_table
-    @exams_file = "exams.json"
+    @exams_file = "data/exams.json"
     unless File.exist?(@exams_file)
       File.write(@exams_file, JSON.dump([]))
     end
   end
   
   def create_schedules_table
-    @schedules_file = "schedules.json"
+    @schedules_file = "data/schedules.json"
     unless File.exist?(@schedules_file)
       File.write(@schedules_file, JSON.dump([]))
     end
   end
   
   def create_attempts_table
-    @attempts_file = "attempts.json"
+    @attempts_file = "data/attempts.json"
     unless File.exist?(@attempts_file)
       File.write(@attempts_file, JSON.dump([]))
     end
   end
   
   def create_results_table
-    @results_file = "results.json"
+    @results_file = "data/results.json"
     unless File.exist?(@results_file)
       File.write(@results_file, JSON.dump([]))
     end
@@ -63,11 +63,11 @@ class ExamDatabase
   # ===== USER MANAGEMENT =====
   def register_student(name, email, reg_number, password)
     begin
-      unless File.exist?("users.json")
-        File.write("users.json", JSON.dump({"admins" => [], "students" => []}))
+      unless File.exist?("data/users.json")
+        File.write("data/users.json", JSON.dump({"admins" => [], "students" => []}))
       end
       
-      data = JSON.parse(File.read("users.json"))
+      data = JSON.parse(File.read("data/users.json"))
       puts "📂 Current students: #{data["students"].count}"
       
       existing_email = data["students"].find { |s| s["email"].to_s.downcase == email.to_s.downcase }
@@ -93,7 +93,7 @@ class ExamDatabase
       }
       
       data["students"] << student
-      File.write("users.json", JSON.dump(data))
+      File.write("data/users.json", JSON.dump(data))
       
       puts "✅ Student registered: #{name}"
       student
@@ -105,11 +105,11 @@ class ExamDatabase
   
   def register_admin(name, email, password)
     begin
-      unless File.exist?("users.json")
-        File.write("users.json", JSON.dump({"admins" => [], "students" => []}))
+      unless File.exist?("data/users.json")
+        File.write("data/users.json", JSON.dump({"admins" => [], "students" => []}))
       end
       
-      data = JSON.parse(File.read("users.json"))
+      data = JSON.parse(File.read("data/users.json"))
       
       existing = data["admins"].find { |a| a["email"].to_s.downcase == email.to_s.downcase }
       if existing
@@ -126,7 +126,7 @@ class ExamDatabase
       }
       
       data["admins"] << admin
-      File.write("users.json", JSON.dump(data))
+      File.write("data/users.json", JSON.dump(data))
       
       puts "✅ Admin registered: #{name}"
       admin
@@ -138,12 +138,12 @@ class ExamDatabase
   
   # ===== AUTHENTICATION - THIS WAS MISSING =====
   def authenticate_user(email, password)
-    return nil unless File.exist?("users.json")
+    return nil unless File.exist?("data/users.json")
     
     begin
-      data = JSON.parse(File.read("users.json"))
+      data = JSON.parse(File.read("data/users.json"))
     rescue => e
-      puts "❌ Error reading users.json: #{e.message}"
+      puts "❌ Error reading data/users.json: #{e.message}"
       return nil
     end
     
@@ -181,9 +181,9 @@ class ExamDatabase
   
   # ===== STUDENT MANAGEMENT =====
   def get_all_students
-    return [] unless File.exist?("users.json")
+    return [] unless File.exist?("data/users.json")
     begin
-      data = JSON.parse(File.read("users.json"))
+      data = JSON.parse(File.read("data/users.json"))
       return data["students"] || []
     rescue
       return []
@@ -206,9 +206,9 @@ class ExamDatabase
   
   # ===== ADMIN MANAGEMENT =====
   def get_all_admins
-    return [] unless File.exist?("users.json")
+    return [] unless File.exist?("data/users.json")
     begin
-      data = JSON.parse(File.read("users.json"))
+      data = JSON.parse(File.read("data/users.json"))
       return data["admins"] || []
     rescue
       return []
@@ -224,7 +224,7 @@ class ExamDatabase
   def add_question(question_text, option1, option2, option3, option4, correct_answer)
     question_id = "question_#{Time.now.to_i}"
     
-    questions_file = "questions.json"
+    questions_file = "data/questions.json"
     unless File.exist?(questions_file)
       File.write(questions_file, JSON.dump([]))
     end
@@ -246,14 +246,14 @@ class ExamDatabase
   end
   
   def get_all_questions
-    questions_file = "questions.json"
+    questions_file = "data/questions.json"
     return [] unless File.exist?(questions_file)
     JSON.parse(File.read(questions_file))
   end
   
   # ===== EXAM SCHEDULING =====
   def create_exam_schedule(title, description, duration_minutes, scheduled_date, start_time, end_time, questions_list)
-    schedules = JSON.parse(File.read("schedules.json"))
+    schedules = JSON.parse(File.read("data/schedules.json"))
     
     schedule = {
       "id" => "schedule_#{Time.now.to_i}",
@@ -269,14 +269,14 @@ class ExamDatabase
     }
     
     schedules << schedule
-    File.write("schedules.json", JSON.dump(schedules))
+    File.write("data/schedules.json", JSON.dump(schedules))
     puts "✅ Exam scheduled"
     schedule
   end
   
   def get_all_schedules
-    return [] unless File.exist?("schedules.json")
-    JSON.parse(File.read("schedules.json"))
+    return [] unless File.exist?("data/schedules.json")
+    JSON.parse(File.read("data/schedules.json"))
   end
   
   def get_schedule(schedule_id)
@@ -285,21 +285,47 @@ class ExamDatabase
   end
   
   def get_active_schedules
-    schedules = get_all_schedules
-    now = Time.now
+  schedules = get_all_schedules
+  now = Time.now
+  
+  puts "Current time: #{now}"
+  puts "Checking #{schedules.count} schedules for active status..."
+  
+  active_schedules = schedules.select do |s|
+    # Only consider scheduled exams
+    next unless s["status"] == "scheduled"
     
-    schedules.select do |s|
-      next unless s["status"] == "scheduled"
+    begin
+      # Parse the exam datetime
+      exam_start = Time.parse("#{s["scheduled_date"]} #{s["start_time"]}")
+      exam_end = Time.parse("#{s["scheduled_date"]} #{s["end_time"]}")
       
-      begin
-        start_time = Time.parse("#{s["scheduled_date"]} #{s["start_time"]}")
-        end_time = Time.parse("#{s["scheduled_date"]} #{s["end_time"]}")
-        now >= start_time && now <= end_time
-      rescue
-        false
+      # Check if current time is between start and end
+      is_active = now >= exam_start && now <= exam_end
+      
+      if is_active
+        puts "✅ Exam '#{s["title"]}' is ACTIVE now!"
+        # Optional: Auto-update status to active
+        # update_schedule_status(s["id"], "active")
+      else
+        if now < exam_start
+          puts "⏳ Exam '#{s["title"]}' starts at #{exam_start}"
+        elsif now > exam_end
+          puts "⌛ Exam '#{s["title"]}' ended at #{exam_end}"
+          # Optional: Auto-update status to completed
+          # update_schedule_status(s["id"], "completed")
+        end
       end
+      
+      is_active
+    rescue => e
+      puts "❌ Error parsing time for exam #{s["id"]}: #{e.message}"
+      false
     end
   end
+  
+  active_schedules
+end
   
   def get_upcoming_schedules
     schedules = get_all_schedules
@@ -316,10 +342,45 @@ class ExamDatabase
       end
     end
   end
+
+  def update_exam_statuses
+  schedules = JSON.parse(File.read("data/schedules.json"))
+  now = Time.now
+  updated = false
+  
+  schedules.each do |s|
+    begin
+      exam_start = Time.parse("#{s["scheduled_date"]} #{s["start_time"]}")
+      exam_end = Time.parse("#{s["scheduled_date"]} #{s["end_time"]}")
+      
+      # Update status based on current time
+      if now >= exam_start && now <= exam_end && s["status"] == "scheduled"
+        s["status"] = "active"
+        updated = true
+        puts "✅ Exam '#{s["title"]}' is now ACTIVE"
+      elsif now > exam_end && s["status"] == "active"
+        s["status"] = "completed"
+        updated = true
+        puts "✅ Exam '#{s["title"]}' is now COMPLETED"
+      elsif now > exam_end && s["status"] == "scheduled"
+        s["status"] = "completed"
+        updated = true
+        puts "✅ Exam '#{s["title"]}' is now COMPLETED (missed)"
+      end
+    rescue => e
+      puts "❌ Error updating exam #{s["id"]}: #{e.message}"
+    end
+  end
+  
+  if updated
+    File.write("data/schedules.json", JSON.dump(schedules))
+    puts "✅ Exam status updated"
+  end
+end
   
   # ===== EXAM ATTEMPTS =====
   def create_exam_attempt(student_id, schedule_id)
-    attempts = JSON.parse(File.read("attempts.json"))
+    attempts = JSON.parse(File.read("data/attempts.json"))
     
     attempt = {
       "id" => "attempt_#{Time.now.to_i}",
@@ -332,13 +393,13 @@ class ExamDatabase
     }
     
     attempts << attempt
-    File.write("attempts.json", JSON.dump(attempts))
+    File.write("data/attempts.json", JSON.dump(attempts))
     puts "✅ Exam attempt created"
     attempt
   end
   
   def submit_exam_attempt(attempt_id, answers, score)
-    attempts = JSON.parse(File.read("attempts.json"))
+    attempts = JSON.parse(File.read("data/attempts.json"))
     attempt = attempts.find { |a| a["id"] == attempt_id }
     
     if attempt
@@ -346,7 +407,7 @@ class ExamDatabase
       attempt["score"] = score
       attempt["status"] = "completed"
       attempt["end_time"] = Time.now.to_s
-      File.write("attempts.json", JSON.dump(attempts))
+      File.write("data/attempts.json", JSON.dump(attempts))
       
       schedule = get_schedule(attempt["schedule_id"])
       student = get_student(attempt["student_id"])
@@ -361,19 +422,19 @@ class ExamDatabase
   end
   
   def get_student_attempts(student_id)
-    return [] unless File.exist?("attempts.json")
-    attempts = JSON.parse(File.read("attempts.json"))
+    return [] unless File.exist?("data/attempts.json")
+    attempts = JSON.parse(File.read("data/attempts.json"))
     attempts.select { |a| a["student_id"] == student_id }
   end
   
   def get_all_attempts
-    return [] unless File.exist?("attempts.json")
-    JSON.parse(File.read("attempts.json"))
+    return [] unless File.exist?("data/attempts.json")
+    JSON.parse(File.read("data/attempts.json"))
   end
   
   # ===== RESULTS MANAGEMENT =====
   def save_result(student_name, score, total)
-    results_file = "results.json"
+    results_file = "data/results.json"
     unless File.exist?(results_file)
       File.write(results_file, JSON.dump([]))
     end
@@ -396,20 +457,20 @@ class ExamDatabase
   end
   
   def get_student_results(student_name)
-    return [] unless File.exist?("results.json")
-    results = JSON.parse(File.read("results.json"))
+    return [] unless File.exist?("data/results.json")
+    results = JSON.parse(File.read("data/results.json"))
     results.select { |r| r["student"] == student_name }
   end
   
   def get_all_results
-    return [] unless File.exist?("results.json")
-    JSON.parse(File.read("results.json"))
+    return [] unless File.exist?("data/results.json")
+    JSON.parse(File.read("data/results.json"))
   end
 end
 
 # Update question
 def update_question(question_id, question_text, options, correct_answer)
-  questions = JSON.parse(File.read("questions.json"))
+  questions = JSON.parse(File.read("data/questions.json"))
   question = questions.find { |q| q["id"] == question_id }
   
   if question
@@ -418,7 +479,7 @@ def update_question(question_id, question_text, options, correct_answer)
     question["correct"] = correct_answer
     question["updated_at"] = Time.now.to_s
     
-    File.write("questions.json", JSON.dump(questions))
+    File.write("data/questions.json", JSON.dump(questions))
     puts "✅ Question updated in database helper"
     return true
   end
@@ -427,7 +488,7 @@ end
 
 # Update exam schedule
 def update_exam_schedule(schedule_id, title, description, duration, date, start_time, end_time, status, questions)
-  schedules = JSON.parse(File.read("schedules.json"))
+  schedules = JSON.parse(File.read("data/schedules.json"))
   schedule = schedules.find { |s| s["id"] == schedule_id }
   
   if schedule
@@ -441,7 +502,7 @@ def update_exam_schedule(schedule_id, title, description, duration, date, start_
     schedule["questions"] = questions
     schedule["updated_at"] = Time.now.to_s
     
-    File.write("schedules.json", JSON.dump(schedules))
+    File.write("data/schedules.json", JSON.dump(schedules))
     puts "✅ Exam schedule updated in database helper"
     return true
   end
