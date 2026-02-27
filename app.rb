@@ -3,15 +3,21 @@ require_relative 'database'
 
 enable :sessions
 
-# Before any request, update exam statuses
-before do
-  if db.respond_to?(:update_exam_statuses)
-    db.update_exam_statuses
-  end
-end
-
 # Initialize database connection
 db = ExamDatabase.new
+
+# ===== AUTO-UPDATE EXAM STATUSES =====
+# This runs before EVERY request
+before do
+  begin
+    if db.respond_to?(:update_exam_statuses)
+      db.update_exam_statuses
+      puts "✅ Exam statuses checked"
+    end
+  rescue => e
+    puts "❌ Error in before filter: #{e.message}"
+  end
+end
 
 # ===== PUBLIC ROUTES (No Login Required) =====
 
@@ -257,7 +263,6 @@ get '/student/dashboard' do
   
   # Double-check statuses
   db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
-  
   @active_exams = db.get_active_schedules
   @upcoming_exams = db.get_upcoming_schedules
   @my_attempts = db.get_student_attempts(session[:user_id])

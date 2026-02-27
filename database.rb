@@ -490,31 +490,48 @@ def update_question(question_id, question_text, options, correct_answer)
 end
 
 def update_exam_statuses
-  schedules = get_all_from_table('schedules')
+  puts "🔄 Checking exam statuses..."
+  
+  begin
+    schedules = get_all_from_table('schedules')
+  rescue => e
+    puts "❌ Could not fetch schedules: #{e.message}"
+    return false
+  end
+  
   now = Time.now
   updated = false
   
   schedules.each do |s|
     begin
+      # Skip if required fields are missing
+      unless s["scheduled_date"] && s["start_time"] && s["end_time"]
+        puts "⚠️ Exam #{s["id"]} missing date/time fields"
+        next
+      end
+      
       exam_start = Time.parse("#{s["scheduled_date"]} #{s["start_time"]}")
       exam_end = Time.parse("#{s["scheduled_date"]} #{s["end_time"]}")
+      
+      old_status = s["status"]
       
       if now >= exam_start && now <= exam_end && s["status"] == "scheduled"
         s["status"] = "active"
         update_in_table('schedules', s["id"], s)
         updated = true
-        puts "✅ Exam '#{s["title"]}' is now ACTIVE"
+        puts "✅ Exam '#{s["title"]}' changed from #{old_status} to ACTIVE"
       elsif now > exam_end && s["status"] != "completed"
         s["status"] = "completed"
         update_in_table('schedules', s["id"], s)
         updated = true
-        puts "✅ Exam '#{s["title"]}' is now COMPLETED"
+        puts "✅ Exam '#{s["title"]}' changed from #{old_status} to COMPLETED"
       end
     rescue => e
-      puts "❌ Error updating exam: #{e.message}"
+      puts "❌ Error updating exam #{s["id"]}: #{e.message}"
     end
   end
   
+  puts updated ? "✅ Status updates complete" : "⏳ No status changes needed"
   updated
 end
 
