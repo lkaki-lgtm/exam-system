@@ -489,6 +489,35 @@ def update_question(question_id, question_text, options, correct_answer)
   false
 end
 
+def update_exam_statuses
+  schedules = get_all_from_table('schedules')
+  now = Time.now
+  updated = false
+  
+  schedules.each do |s|
+    begin
+      exam_start = Time.parse("#{s["scheduled_date"]} #{s["start_time"]}")
+      exam_end = Time.parse("#{s["scheduled_date"]} #{s["end_time"]}")
+      
+      if now >= exam_start && now <= exam_end && s["status"] == "scheduled"
+        s["status"] = "active"
+        update_in_table('schedules', s["id"], s)
+        updated = true
+        puts "✅ Exam '#{s["title"]}' is now ACTIVE"
+      elsif now > exam_end && s["status"] != "completed"
+        s["status"] = "completed"
+        update_in_table('schedules', s["id"], s)
+        updated = true
+        puts "✅ Exam '#{s["title"]}' is now COMPLETED"
+      end
+    rescue => e
+      puts "❌ Error updating exam: #{e.message}"
+    end
+  end
+  
+  updated
+end
+
 # Update exam schedule
 def update_exam_schedule(schedule_id, title, description, duration, date, start_time, end_time, status, questions)
   schedules = JSON.parse(File.read("data/schedules.json"))
@@ -511,3 +540,4 @@ def update_exam_schedule(schedule_id, title, description, duration, date, start_
   end
   false
 end
+

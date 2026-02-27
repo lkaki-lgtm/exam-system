@@ -3,6 +3,13 @@ require_relative 'database'
 
 enable :sessions
 
+# Before any request, update exam statuses
+before do
+  if db.respond_to?(:update_exam_statuses)
+    db.update_exam_statuses
+  end
+end
+
 # Initialize database connection
 db = ExamDatabase.new
 
@@ -248,7 +255,7 @@ end
 get '/student/dashboard' do
   redirect '/login?role=student' unless session[:user_type] == "student"
   
-  # Update statuses first
+  # Double-check statuses
   db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
   
   @active_exams = db.get_active_schedules
