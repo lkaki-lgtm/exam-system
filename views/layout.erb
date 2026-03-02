@@ -10,7 +10,7 @@
   </style>
 </head>
 <body class="bg-gray-50">
-  <!-- NAVIGATION BAR - THIS SHOULD BE AT THE TOP -->
+  <!-- NAVIGATION BAR - SIMPLE ORIGINAL STYLE -->
   <nav class="bg-white shadow-lg border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
@@ -21,7 +21,7 @@
           </a>
         </div>
         
-        <!-- Desktop Navigation -->
+        <!-- Desktop Navigation - SIMPLE ORIGINAL VERSION -->
         <div class="hidden md:block">
           <div class="ml-10 flex items-baseline space-x-4">
             <% if session[:user_type] == "admin" %>
@@ -31,6 +31,7 @@
               <a href="/admin/dashboard" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Dashboard</a>
               <a href="/admin/questions" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Questions</a>
               <a href="/admin/create-exam" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Schedule Exam</a>
+              <a href="/admin/students" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Students</a>
               <a href="/admin/results" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Results</a>
               <a href="/logout" class="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-medium transition">Logout</a>
             <% elsif session[:user_type] == "student" %>
@@ -67,7 +68,7 @@
             Hello, <span class="font-bold text-green-600"><%= session[:user_name] %></span> (Admin)
           </div>
           <a href="/admin/dashboard" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Dashboard</a>
-          <a href="/admin/questions" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Questions</a>
+          <a href="/admin/questions" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Add Qns</a>
           <a href="/admin/create-exam" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Schedule Exam</a>
           <a href="/admin/students" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Students</a>
           <a href="/admin/results" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Results</a>
@@ -88,12 +89,12 @@
     </div>
   </nav>
 
-  <!-- MAIN CONTENT - THIS IS WHERE YOUR PAGE CONTENT GOES -->
+  <!-- MAIN CONTENT -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <%= yield %>
   </main>
 
-  <!-- Optional Footer -->
+  <!-- Footer -->
   <footer class="bg-white border-t border-gray-200 mt-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <p class="text-center text-gray-500 text-sm">
@@ -111,13 +112,3 @@
   </script>
 </body>
 </html>
-
-<% if session[:user_type] == "admin" %>
-  <span class="text-gray-700 px-3 py-2 text-sm font-medium">
-    Hello, <span class="font-bold text-green-600"><%= session[:user_name] %></span> (Admin)
-  </span>
-  <a href="/admin/edit-questions" class="text-blue-600 hover:text-blue-800 px-3 py-2 text-sm font-medium transition">Edit Qns</a>
-  <a href="/admin/delete-questions" class="text-red-600 hover:text-red-800 px-3 py-2 text-sm font-medium transition">Delete Qns</a>
-  <a href="/admin/edit-exams" class="text-blue-600 hover:text-blue-800 px-3 py-2 text-sm font-medium transition">Edit Exams</a>
-<% end %>
-  <a href="/admin/delete-exams" class="text-red-600 hover:text-red-800 px-3 py-2 text-sm font-medium transition">Delete Exams</a>

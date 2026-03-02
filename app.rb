@@ -1,7 +1,23 @@
 require 'sinatra'
 require_relative 'database'
 
+# Disable host protection for ngrok testing
+set :protection, except: :host_authorization
+
+# Allow ngrok domains to bypass host protection
+configure :development do
+  set :protection, except: [:host_authorization]
+  set :hosts, [
+    "localhost",
+    "127.0.0.1",
+    /.*\.ngrok\.io/,
+    /.*\.ngrok-free\.app/,
+    /.*\.ngrok\.app/
+  ]
+end
+
 enable :sessions
+
 
 # Initialize database connection
 db = ExamDatabase.new
@@ -19,17 +35,51 @@ before do
   end
 end
 
+# These are already covered by the before filter above
+# You don't need separate /student/* and /admin/* filters
+
 # ===== PUBLIC ROUTES (No Login Required) =====
+
+
+# Registration page
+get '/register' do
+  erb :register
+end
 
 # Home page
 get '/' do
   erb :index
 end
 
+# ===== TEST PAGE - System Health Dashboard =====
+# Add this new route right here!
+get '/test' do
+  # Gather statistics from JSON files
+  begin
+    users_data = File.exist?("users.json") ? JSON.parse(File.read("users.json")) : {"admins" => [], "students" => []}
+    questions_data = File.exist?("questions.json") ? JSON.parse(File.read("questions.json")) : []
+    schedules_data = File.exist?("schedules.json") ? JSON.parse(File.read("schedules.json")) : []
+    attempts_data = File.exist?("attempts.json") ? JSON.parse(File.read("attempts.json")) : []
+    
+    @stats = {
+      users: users_data["students"].count + users_data["admins"].count,
+      questions: questions_data.count,
+      exams: schedules_data.count,
+      attempts: attempts_data.count
+    }
+  rescue => e
+    puts "Error loading stats: #{e.message}"
+    @stats = { users: "?", questions: "?", exams: "?", attempts: "?" }
+  end
+  
+  erb :test
+end
+
 # Registration page
 get '/register' do
   erb :register
 end
+# ... rest of your routes
 
 post '/register' do
   # Simple password (in production, use bcrypt)
@@ -108,6 +158,32 @@ get '/logout' do
 end
 
 # ===== ADMIN ROUTES (Restricted) =====
+
+# Secret admin creation page (only accessible if you're already admin)
+get '/admin/create-admin' do
+  # Only existing admins can access this
+  redirect '/login?role=admin' unless session[:user_type] == "admin"
+  
+  erb :create_admin
+end
+
+post '/admin/create-admin' do
+  redirect '/login?role=admin' unless session[:user_type] == "admin"
+  
+  result = db.register_admin(
+    params[:name],
+    params[:email],
+    params[:password]
+  )
+  
+  if result.nil?
+    @error = "Email already exists"
+    erb :create_admin
+  else
+    @message = "✅ New admin created successfully!"
+    erb :admin_dashboard
+  end
+end
 
 # Admin dashboard
 get '/admin/dashboard' do
@@ -281,18 +357,6 @@ get '/student/exam/:schedule_id' do
   @schedule_id = params[:schedule_id]
   schedules = db.get_all_schedules
   @exam = schedules.find { |s| s["id"] == @schedule_id }
-
-  # Add a filter to update statuses
-before '/student/*' do
-  # Update exam statuses before any student action
-  db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
-end
-
-# Also update when accessing admin pages
-before '/admin/*' do
-  # Update exam statuses before admin actions too
-  db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
-end
   
   # Check if exam exists
   if @exam.nil?
@@ -327,7 +391,8 @@ end
   
   # Create exam attempt
   @attempt = db.create_exam_attempt(session[:user_id], @schedule_id)
-  @questions = @exam["questions"]
+  # Randomize questions for each student
+  @questions = @exam["questions"].shuffle
   
   erb :scheduled_exam
 end

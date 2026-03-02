@@ -1,74 +1,82 @@
-<div class="min-h-screen flex items-center justify-center">
-  <div class="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
-    <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">Create Account</h2>
-    
-    <% if @error %>
-      <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
-        <%= @error %>
-      </div>
-    <% end %>
-    
-    <form action="/register" method="post" class="space-y-6">
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">👥 Manage Students</h1>
+    <a href="/admin/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <!-- Add Student Form -->
+  <div class="bg-white rounded-xl shadow-lg p-6">
+    <h2 class="text-2xl font-bold text-gray-800 mb-6">➕ Add New Student</h2>
+    <form action="/admin/students/add" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
         <input type="text" name="name" required
                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
       </div>
-      
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
         <input type="email" name="email" required
                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
       </div>
-      
-      <!-- Registration Number (shown only for students) -->
-      <div id="reg-number-field">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Registration Number</label>
-        <input type="text" name="reg_number" 
-               class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
-        <p class="text-xs text-gray-500 mt-1">Required for students only</p>
-      </div>
-      
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Registration Number</label>
+        <input type="text" name="reg_number" required
+               class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
         <input type="password" name="password" required
                class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
       </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-        <select name="role" id="role-select" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg">
-          <option value="student">Student</option>
-          <option value="admin">Admin</option>
-        </select>
+      <div class="md:col-span-2 flex justify-end">
+        <button type="submit" class="bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition">
+          Add Student
+        </button>
       </div>
-      
-      <button type="submit" 
-              class="w-full bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition">
-        Register
-      </button>
     </form>
-    
-    <p class="text-center text-gray-600 mt-6">
-      Already have an account? <a href="/login" class="text-green-500 hover:underline">Login</a>
-    </p>
+  </div>
+
+  <!-- Students List -->
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="bg-gray-50 px-6 py-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">Registered Students</h2>
+    </div>
+
+    <% if @students.empty? %>
+      <div class="text-center py-12">
+        <p class="text-gray-500">No students registered yet.</p>
+      </div>
+    <% else %>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Name</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Email</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Reg. Number</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Registered On</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <% @students.each do |s| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm text-gray-800"><%= s["name"] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= s["email"] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= s["reg_number"] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= s["registered_at"][0..9] %></td>
+                <td class="px-6 py-4">
+                  <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                    <%= s["status"] %>
+                  </span>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
   </div>
 </div>
-
-<script>
-  document.getElementById('role-select').addEventListener('change', function() {
-    const regField = document.getElementById('reg-number-field');
-    const regInput = document.querySelector('input[name="reg_number"]');
-    
-    if (this.value === 'admin') {
-      regField.style.display = 'none';
-      regInput.required = false;
-    } else {
-      regField.style.display = 'block';
-      regInput.required = true;
-    }
-  });
-  
-  // Initial state
-  document.getElementById('role-select').dispatchEvent(new Event('change'));
-</script>
