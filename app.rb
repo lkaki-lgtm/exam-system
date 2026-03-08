@@ -2,6 +2,9 @@ require 'sinatra'
 require_relative 'database'
 require 'json'
 
+set :bind, '0.0.0.0'
+set :port, ENV['PORT'] || 4567
+
 # Disable host protection for ngrok testing
 set :protection, except: :host_authorization
 
