@@ -1,0 +1,254 @@
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">🎥 Live Exam Monitor</h1>
+    <a href="/teacher/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  <% if session[:success] %>
+    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg animate__animated animate__fadeIn">
+      <div class="flex items-center">
+        <span class="text-2xl mr-3">✅</span>
+        <p><%= session[:success] %></p>
+      </div>
+    </div>
+    <% session[:success] = nil %>
+  <% end %>
+
+  <% if session[:error] %>
+    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg animate__animated animate__fadeIn">
+      <div class="flex items-center">
+        <span class="text-2xl mr-3">❌</span>
+        <p><%= session[:error] %></p>
+      </div>
+    </div>
+    <% session[:error] = nil %>
+  <% end %>
+
+  <!-- Exam Info -->
+  <div class="bg-gradient-to-r from-amber-600 to-red-600 rounded-2xl shadow-xl p-8 text-white">
+    <h2 class="text-3xl font-bold mb-2"><%= @exam["title"] %></h2>
+    <p class="text-amber-100 text-lg mb-4"><%= @exam["description"] %></p>
+    <div class="flex flex-wrap gap-6">
+      <div>
+        <span class="text-amber-200">📅 Date:</span>
+        <span class="font-semibold ml-2"><%= @exam["scheduled_date"] %></span>
+      </div>
+      <div>
+        <span class="text-amber-200">⏰ Time:</span>
+        <span class="font-semibold ml-2"><%= @exam["start_time"] %> - <%= @exam["end_time"] %></span>
+      </div>
+      <div>
+        <span class="text-amber-200">📝 Questions:</span>
+        <span class="font-semibold ml-2"><%= @exam["questions"].count %></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Students -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-red-500 to-red-600 px-8 py-5">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>🟢</span> Students Taking Exam Now
+      </h2>
+    </div>
+
+    <div class="p-6">
+      <% if @active_attempts.empty? %>
+        <div class="text-center py-12 bg-gray-50 rounded-xl">
+          <div class="text-7xl mb-4">😴</div>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">No Active Students</h3>
+          <p class="text-gray-500">No students are currently taking this exam.</p>
+        </div>
+      <% else %>
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Student</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Registration No.</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Started At</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Status</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Progress</th>
+                <th class="px-6 py-4 text-left text-sm font-semibold text-gray-600">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <% 
+                latest_attempts = {}
+                @active_attempts.each do |attempt|
+                  student_id = attempt["student_id"]
+                  if !latest_attempts[student_id] || latest_attempts[student_id]["start_time"] < attempt["start_time"]
+                    latest_attempts[student_id] = attempt
+                  end
+                end
+              %>
+
+              <% latest_attempts.each do |student_id, attempt| %>
+                <% student = @students.find { |s| s["id"] == student_id } %>
+                <% next unless student %>
+                <% progress = attempt["answers"] ? attempt["answers"].length : 0 %>
+                <% total = @exam["questions"].count %>
+
+                <% readable_status =
+                  case attempt["status"]
+                  when "in_progress" then "Taking Exam"
+                  when "completed" then "Completed"
+                  when "terminated_for_malpractice" then "Terminated"
+                  when "removed_for_malpractice" then "Removed"
+                  when "stopped_by_teacher" then "Stopped by Teacher"
+                  else attempt["status"].to_s.gsub('_', ' ').split.map(&:capitalize).join(' ')
+                  end
+                %>
+
+                <tr class="hover:bg-gray-50 transition">
+                  <td class="px-6 py-4 text-sm font-medium text-gray-900"><%= student["name"] %></td>
+                  <td class="px-6 py-4 text-sm text-gray-600"><%= student["reg_number"] %></td>
+                  <td class="px-6 py-4 text-sm text-gray-600"><%= attempt["start_time"][11..15] if attempt["start_time"] %></td>
+
+                  <td class="px-6 py-4">
+                    <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                      <%= readable_status %>
+                    </span>
+                  </td>
+
+                  <td class="px-6 py-4 text-sm text-gray-600">
+                    <%= progress %>/<%= total %>
+                  </td>
+
+                  <td class="px-6 py-4">
+                    <% if attempt["status"] == "in_progress" %>
+                      <div class="flex gap-2">
+                        <button onclick="openMalpracticeModal('<%= attempt["id"] %>', '<%= student["name"] %>')"
+                                class="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition">
+                          🚫 Remove
+                        </button>
+
+                        <form action="/teacher/exam/force-submit" method="post" class="inline">
+                          <input type="hidden" name="attempt_id" value="<%= attempt["id"] %>">
+                          <input type="hidden" name="exam_id" value="<%= @exam["id"] %>">
+                          <button type="submit"
+                                  class="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600 transition"
+                                  onclick="return confirm('Submit current answers and end exam for this student?')">
+                            ⏹️ Stop & Grade
+                          </button>
+                        </form>
+                      </div>
+                    <% else %>
+                      <span class="text-gray-400 text-sm">Exam Ended</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-6 flex justify-end">
+    <a href="/teacher/exam/<%= @exam["id"] %>/proctoring-report"
+       class="bg-purple-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition flex items-center gap-2">
+      <span>📊</span> View Proctoring Report
+    </a>
+  </div>
+
+  <!-- Instructions -->
+  <div class="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
+    <h4 class="font-bold text-blue-800 mb-2">📌 Teacher Instructions</h4>
+    <ul class="list-disc list-inside text-blue-700 space-y-1">
+      <li>Monitor students in real-time as they take the exam</li>
+      <li>If you suspect malpractice, click "Remove" to immediately remove the student (score 0).</li>
+      <li>Use "Stop & Grade" to end the exam and calculate score based on answered questions.</li>
+      <li>Removed students will be logged and cannot continue the exam.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Malpractice Removal Modal -->
+<div id="malpracticeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+  <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+    <div class="mt-3">
+      <h3 class="text-lg font-bold text-gray-900 mb-4">🚫 Remove Student for Malpractice</h3>
+      <p class="text-sm text-gray-500 mb-4">Removing <span id="studentName" class="font-semibold"></span> from the exam.</p>
+
+      <form id="malpracticeForm" action="/teacher/exam/remove-student" method="post">
+        <input type="hidden" name="attempt_id" id="attemptId">
+        <input type="hidden" name="exam_id" value="<%= @exam["id"] %>">
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Removal</label>
+          <select name="reason" required class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 transition">
+            <option value="multiple_faces">Multiple faces detected</option>
+            <option value="looking_away">Looking away from screen</option>
+            <option value="phone_detected">Phone detected</option>
+            <option value="talking">Talking during exam</option>
+            <option value="other">Other (specify below)</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Additional Details</label>
+          <textarea name="details" rows="2" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-red-500 transition" placeholder="Optional details..."></textarea>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="closeModal()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">Cancel</button>
+          <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition">Confirm Removal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  let submitting = false;
+
+  function openMalpracticeModal(attemptId, studentName) {
+    submitting = false;
+
+    const submitBtn = document.querySelector('#malpracticeForm button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Confirm Removal';
+    }
+
+    document.getElementById('attemptId').value = attemptId;
+    document.getElementById('studentName').textContent = studentName;
+    document.getElementById('malpracticeModal').classList.remove('hidden');
+  }
+
+  function closeModal() {
+    document.getElementById('malpracticeModal').classList.add('hidden');
+    submitting = false;
+  }
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('malpracticeModal');
+    if (event.target == modal) {
+      closeModal();
+    }
+  }
+
+  document.getElementById('malpracticeForm').addEventListener('submit', function(e) {
+    const submitBtn = this.querySelector('button[type="submit"]');
+
+    if (submitting || submitBtn.disabled) {
+      e.preventDefault();
+      alert('Form is already being submitted. Please wait.');
+      return false;
+    }
+
+    submitting = true;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Removing...';
+
+    setTimeout(() => {
+      submitting = false;
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Confirm Removal';
+    }, 5000);
+  });
+</script>

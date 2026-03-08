@@ -1,44 +1,39 @@
 <div class="space-y-8">
   <div class="flex justify-between items-center">
-    <h1 class="text-4xl font-bold text-gray-800">👥 Manage Students</h1>
-    <a href="/admin/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
-      ← Back to Dashboard
-    </a>
+    <h1 class="text-4xl font-bold text-gray-800">👥 Student Directory</h1>
+    <div class="flex gap-4">
+      <a href="/admin/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+        ← Back to Dashboard
+      </a>
+    </div>
   </div>
 
-  <!-- Add Student Form -->
+  <!-- Search Bar -->
   <div class="bg-white rounded-xl shadow-lg p-6">
-    <h2 class="text-2xl font-bold text-gray-800 mb-6">➕ Add New Student</h2>
-    <form action="/admin/students/add" method="post" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
-        <input type="text" name="name" required
-               class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
+    <div class="flex flex-col md:flex-row gap-4 items-center">
+      <div class="flex-1 w-full">
+        <label class="block text-sm font-semibold text-gray-700 mb-2">🔍 Search Students</label>
+        <input type="text" 
+               id="searchInput" 
+               placeholder="Search by name, email, or registration number..." 
+               class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 transition">
       </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Email</label>
-        <input type="email" name="email" required
-               class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Registration Number</label>
-        <input type="text" name="reg_number" required
-               class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
-      </div>
-      <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-2">Password</label>
-        <input type="password" name="password" required
-               class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
-      </div>
-      <div class="md:col-span-2 flex justify-end">
-        <button type="submit" class="bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600 transition">
-          Add Student
+      <div class="flex gap-2">
+        <select id="searchField" class="px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 transition">
+          <option value="all">All Fields</option>
+          <option value="name">Name</option>
+          <option value="email">Email</option>
+          <option value="reg_number">Registration No.</option>
+        </select>
+        <button onclick="clearSearch()" class="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition">
+          Clear
         </button>
       </div>
-    </form>
+    </div>
+    <p class="text-xs text-gray-500 mt-2" id="resultCount">Showing <%= @students.count %> students</p>
   </div>
 
-  <!-- Students List -->
+  <!-- Students Table -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
     <div class="bg-gray-50 px-6 py-4 border-b">
       <h2 class="text-xl font-bold text-gray-800">Registered Students</h2>
@@ -55,20 +50,34 @@
             <tr>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Name</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Email</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Reg. Number</th>
-              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Registered On</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Registration No.</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Exams Taken</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Avg. Score</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200">
+          <tbody class="divide-y divide-gray-200" id="studentTable">
             <% @students.each do |s| %>
-              <tr class="hover:bg-gray-50">
+              <% student_attempts = @attempts&.select { |a| a["student_id"] == s["id"] } || [] %>
+              <% student_scores = student_attempts.map { |a| a["score"].to_f } %>
+              <% avg_score = student_scores.any? ? (student_scores.sum / student_scores.count).round(2) : 0 %>
+              <tr class="hover:bg-gray-50 student-row"
+                  data-name="<%= s["name"].downcase %>"
+                  data-email="<%= s["email"].downcase %>"
+                  data-reg="<%= s["reg_number"].downcase %>">
                 <td class="px-6 py-4 text-sm text-gray-800"><%= s["name"] %></td>
                 <td class="px-6 py-4 text-sm text-gray-600"><%= s["email"] %></td>
-                <td class="px-6 py-4 text-sm text-gray-600"><%= s["reg_number"] %></td>
-                <td class="px-6 py-4 text-sm text-gray-600"><%= s["registered_at"][0..9] %></td>
+                <td class="px-6 py-4 text-sm font-mono text-gray-600"><%= s["reg_number"] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= student_attempts.count %></td>
+                <td class="px-6 py-4 text-sm">
+                  <span class="px-2 py-1 rounded-full text-xs font-semibold
+                    <%= avg_score >= 70 ? 'bg-green-100 text-green-800' : 
+                       (avg_score >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') %>">
+                    <%= avg_score %>%
+                  </span>
+                </td>
                 <td class="px-6 py-4">
-                  <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
+                  <span class="px-3 py-1 <%= s["status"] == "active" ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' %> rounded-full text-xs font-semibold">
                     <%= s["status"] %>
                   </span>
                 </td>
@@ -80,3 +89,67 @@
     <% end %>
   </div>
 </div>
+
+<script>
+  // Live search functionality
+  const searchInput = document.getElementById('searchInput');
+  const searchField = document.getElementById('searchField');
+  const studentRows = document.querySelectorAll('.student-row');
+  const resultCount = document.getElementById('resultCount');
+
+  function filterStudents() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const field = searchField.value;
+    let visibleCount = 0;
+
+    studentRows.forEach(row => {
+      const name = row.dataset.name;
+      const email = row.dataset.email;
+      const reg = row.dataset.reg;
+      
+      let matches = false;
+      
+      if (searchTerm === '') {
+        matches = true;
+      } else {
+        switch(field) {
+          case 'name':
+            matches = name.includes(searchTerm);
+            break;
+          case 'email':
+            matches = email.includes(searchTerm);
+            break;
+          case 'reg_number':
+            matches = reg.includes(searchTerm);
+            break;
+          default: // 'all'
+            matches = name.includes(searchTerm) || 
+                     email.includes(searchTerm) || 
+                     reg.includes(searchTerm);
+        }
+      }
+      
+      if (matches) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    resultCount.textContent = `Showing ${visibleCount} of ${studentRows.length} students`;
+  }
+
+  function clearSearch() {
+    searchInput.value = '';
+    searchField.value = 'all';
+    filterStudents();
+  }
+
+  // Add event listeners
+  searchInput.addEventListener('keyup', filterStudents);
+  searchField.addEventListener('change', filterStudents);
+
+  // Initialize
+  filterStudents();
+</script>

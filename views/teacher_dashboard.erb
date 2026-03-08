@@ -1,0 +1,234 @@
+<div class="space-y-8">
+  <!-- Welcome Header -->
+  <div class="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl shadow-xl p-8 text-white">
+    <h1 class="text-4xl font-bold mb-2">Welcome, <%= session[:user_name] %>! 👨‍🏫</h1>
+    <p class="text-amber-100 text-lg">Manage your exams and monitor students</p>
+  </div>
+
+  <!-- Stats Cards with Animations -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <!-- Active Exams Card -->
+    <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+         data-aos="fade-up" data-aos-delay="100">
+      <div class="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div class="relative z-10 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 group-hover:text-green-100 text-sm font-medium uppercase tracking-wide transition-colors duration-500">
+              Active Exams
+            </p>
+            <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+              <%= @active_exams&.count || 0 %>
+            </p>
+          </div>
+          <div class="bg-green-100 group-hover:bg-white/30 rounded-full p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+            <span class="text-2xl group-hover:text-white transition-colors duration-500">📝</span>
+          </div>
+        </div>
+      </div>
+      <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-green-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+    </div>
+
+    <!-- My Exams Card -->
+    <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+         data-aos="fade-up" data-aos-delay="200">
+      <div class="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div class="relative z-10 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 group-hover:text-blue-100 text-sm font-medium uppercase tracking-wide transition-colors duration-500">
+              My Exams
+            </p>
+            <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+              <%= @my_exams&.count || 0 %>
+            </p>
+          </div>
+          <div class="bg-blue-100 group-hover:bg-white/30 rounded-full p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+            <span class="text-2xl group-hover:text-white transition-colors duration-500">📚</span>
+          </div>
+        </div>
+      </div>
+      <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+    </div>
+
+    <!-- My Students Card -->
+    <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+         data-aos="fade-up" data-aos-delay="300">
+      <div class="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div class="relative z-10 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 group-hover:text-purple-100 text-sm font-medium uppercase tracking-wide transition-colors duration-500">
+              My Students
+            </p>
+            <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+              <%= @my_students&.count || 0 %>
+            </p>
+          </div>
+          <div class="bg-purple-100 group-hover:bg-white/30 rounded-full p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+            <span class="text-2xl group-hover:text-white transition-colors duration-500">👥</span>
+          </div>
+        </div>
+      </div>
+      <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+    </div>
+
+    <!-- Completed Card -->
+    <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+         data-aos="fade-up" data-aos-delay="400">
+      <div class="absolute inset-0 bg-gradient-to-br from-yellow-500 to-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      <div class="relative z-10 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 group-hover:text-yellow-100 text-sm font-medium uppercase tracking-wide transition-colors duration-500">
+              Completed
+            </p>
+            <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+              <%= @attempts&.count || 0 %>
+            </p>
+          </div>
+          <div class="bg-yellow-100 group-hover:bg-white/30 rounded-full p-3 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+            <span class="text-2xl group-hover:text-white transition-colors duration-500">✅</span>
+          </div>
+        </div>
+      </div>
+      <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 to-yellow-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+    </div>
+  </div>
+
+  <!-- Active Exams Section -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-5">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>🔥</span> Live Exams - Monitor Now
+      </h2>
+    </div>
+
+    <div class="p-6">
+      <% if @active_exams.nil? || @active_exams.empty? %>
+        <div class="text-center py-12 bg-gray-50 rounded-xl">
+          <div class="text-7xl mb-4">😴</div>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">No Active Exams</h3>
+          <p class="text-gray-500">Students aren't taking any exams right now.</p>
+        </div>
+      <% else %>
+        <div class="grid gap-4">
+          <% @active_exams.each do |exam| %>
+            <div class="border-l-4 border-amber-500 bg-amber-50 p-6 rounded-xl hover:shadow-md transition">
+              <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div class="flex-1">
+                  <h3 class="text-xl font-bold text-gray-800"><%= exam["title"] %></h3>
+                  <p class="text-gray-600 mt-1"><%= exam["description"] %></p>
+                  <div class="flex flex-wrap gap-4 mt-3">
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-amber-700">⏱️ <%= exam["duration_minutes"] %> mins</span>
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-blue-700">
+                      📝 
+                      <% 
+                        if exam["questions"]
+                          question_count = exam["questions"].count
+                        elsif exam["num_questions"]
+                          question_count = exam["num_questions"]
+                        else
+                          question_count = 0
+                        end
+                      %>
+                      <%= question_count %> questions
+                    </span>
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-purple-700">⏰ Ends at <%= exam["end_time"] %></span>
+                  </div>
+                </div>
+                <a href="/teacher/exam/<%= exam["id"] %>/control"
+                   class="bg-amber-500 hover:bg-amber-600 text-white px-8 py-3 rounded-xl font-semibold transition transform hover:scale-105 shadow-lg hover:shadow-xl whitespace-nowrap">
+                  🎥 Monitor Exam
+                </a>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- My Scheduled Exams -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-5">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>📋</span> My Scheduled Exams
+      </h2>
+    </div>
+
+    <div class="p-6">
+      <% if @my_exams.nil? || @my_exams.empty? %>
+        <div class="text-center py-12 bg-gray-50 rounded-xl">
+          <div class="text-7xl mb-4">📭</div>
+          <h3 class="text-xl font-bold text-gray-700 mb-2">No Exams Scheduled</h3>
+          <p class="text-gray-500">Exams assigned to you will appear here.</p>
+        </div>
+      <% else %>
+        <div class="grid gap-4">
+          <% @my_exams.each do |exam| %>
+            <div class="border rounded-lg p-4 hover:shadow-md transition">
+              <div class="flex justify-between items-center">
+                <div>
+                  <h3 class="font-bold text-lg"><%= exam["title"] %></h3>
+                  <p class="text-gray-600"><%= exam["scheduled_date"] %> · <%= exam["start_time"] %> - <%= exam["end_time"] %></p>
+                  <p class="text-sm text-gray-500">
+                    <% 
+                      if exam["questions"]
+                        question_count = exam["questions"].count
+                      elsif exam["num_questions"]
+                        question_count = exam["num_questions"]
+                      else
+                        question_count = 0
+                      end
+                    %>
+                    <%= question_count %> questions · <%= exam["duration_minutes"] %> minutes
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <a href="/teacher/exam/<%= exam["id"] %>/assign-students"
+                     class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition">
+                    👥 Assign Students
+                  </a>
+                  <a href="/teacher/exam/<%= exam["id"] %>/control"
+                     class="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition">
+                    🎥 Monitor
+                  </a>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Quick Actions for Teachers -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Student Directory Card -->
+    <a href="/teacher/students"
+       class="group relative block bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+       data-aos="fade-up" data-aos-delay="100">
+      <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+      <div class="relative z-10">
+        <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">👥</div>
+        <h3 class="text-xl font-bold">Student Directory</h3>
+        <p class="text-blue-100">View all students in the system</p>
+      </div>
+      <div class="absolute bottom-4 right-4 transform translate-x-0 group-hover:translate-x-2 transition-transform duration-300">
+        <i class="fas fa-arrow-right text-2xl"></i>
+      </div>
+    </a>
+
+    <!-- Proctoring Report Card -->
+    <a href="#" onclick="alert('Select an exam first from your Active Exams section')"
+       class="group relative block bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+      <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+      <div class="relative z-10">
+        <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">🛡️</div>
+        <h3 class="text-xl font-bold">Proctoring Reports</h3>
+        <p class="text-amber-100">Go to an active exam and click "View Proctoring Report"</p>
+      </div>
+    </a>
+  </div>
+</div>

@@ -1,0 +1,55 @@
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">👨‍🏫 Manage Teachers</h1>
+    <div class="flex gap-4">
+      <a href="/admin/create-teacher" class="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition">
+        + New Teacher
+      </a>
+      <a href="/admin/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+        ← Back
+      </a>
+    </div>
+  </div>
+
+  <!-- Teachers List -->
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="bg-gray-50 px-6 py-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">Registered Teachers</h2>
+    </div>
+
+    <% if @teachers.empty? %>
+      <div class="text-center py-12">
+        <p class="text-gray-500">No teachers registered yet.</p>
+      </div>
+    <% else %>
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Name</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Email</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Registered On</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Exams</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Students</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <% @teachers.each do |teacher| %>
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm text-gray-800"><%= teacher["name"] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= teacher["email"] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= teacher["registered_at"][0..9] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <%= @schedules&.select { |s| s["assigned_teacher_id"] == teacher["id"] }&.count || 0 %>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <%= @teacher_students&.[](teacher["id"])&.count || 0 %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

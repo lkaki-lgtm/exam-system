@@ -1,95 +1,272 @@
 <div class="space-y-8">
   <h1 class="text-4xl font-bold text-gray-800">👑 Admin Dashboard</h1>
   
-  <!-- Stats -->
-  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-    <div class="bg-white rounded-xl shadow-md p-6">
-      <div class="text-3xl font-bold text-gray-800"><%= @students.count %></div>
-      <div class="text-gray-600">Registered Students</div>
-    </div>
-    <div class="bg-white rounded-xl shadow-md p-6">
-      <div class="text-3xl font-bold text-gray-800"><%= @schedules.count %></div>
-      <div class="text-gray-600">Scheduled Exams</div>
-    </div>
-    <div class="bg-white rounded-xl shadow-md p-6">
-      <div class="text-3xl font-bold text-gray-800"><%= @attempts.count %></div>
-      <div class="text-gray-600">Completed Exams</div>
-    </div>
-    <div class="bg-white rounded-xl shadow-md p-6">
-      <div class="text-3xl font-bold text-gray-800">
-        <%= @schedules.select { |s| s["status"] == "scheduled" }.count %>
+  <!-- Stats with Animations -->
+<div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+  <!-- Students Card -->
+  <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+       data-aos="fade-up" data-aos-delay="100">
+    <div class="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div class="relative z-10 p-6">
+      <p class="text-gray-500 group-hover:text-blue-100 text-sm transition-colors duration-500">Registered Students</p>
+      <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500"><%= @students&.count || 0 %></p>
+      <div class="absolute top-4 right-4 bg-blue-100 group-hover:bg-white/30 rounded-full p-2 transition-all duration-500 group-hover:scale-110">
+        <span class="text-xl group-hover:text-white transition-colors duration-500">👥</span>
       </div>
-      <div class="text-gray-600">Upcoming</div>
     </div>
+    <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
   </div>
+
+  <!-- Teachers Card -->
+  <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+       data-aos="fade-up" data-aos-delay="200">
+    <div class="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div class="relative z-10 p-6">
+      <p class="text-gray-500 group-hover:text-green-100 text-sm transition-colors duration-500">Teachers</p>
+      <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500"><%= @teachers&.count || 0 %></p>
+      <div class="absolute top-4 right-4 bg-green-100 group-hover:bg-white/30 rounded-full p-2 transition-all duration-500 group-hover:scale-110">
+        <span class="text-xl group-hover:text-white transition-colors duration-500">👨‍🏫</span>
+      </div>
+    </div>
+    <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-green-500 to-green-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+  </div>
+
+  <!-- Scheduled Exams Card -->
+  <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+       data-aos="fade-up" data-aos-delay="300">
+    <div class="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div class="relative z-10 p-6">
+      <p class="text-gray-500 group-hover:text-purple-100 text-sm transition-colors duration-500">Scheduled Exams</p>
+      <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500"><%= @schedules&.count || 0 %></p>
+      <div class="absolute top-4 right-4 bg-purple-100 group-hover:bg-white/30 rounded-full p-2 transition-all duration-500 group-hover:scale-110">
+        <span class="text-xl group-hover:text-white transition-colors duration-500">📝</span>
+      </div>
+    </div>
+    <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+  </div>
+
+  <!-- Completed Exams Card -->
+  <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+       data-aos="fade-up" data-aos-delay="400">
+    <div class="absolute inset-0 bg-gradient-to-br from-yellow-500 to-yellow-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div class="relative z-10 p-6">
+      <p class="text-gray-500 group-hover:text-yellow-100 text-sm transition-colors duration-500">Completed Exams</p>
+      <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500"><%= @attempts&.count || 0 %></p>
+      <div class="absolute top-4 right-4 bg-yellow-100 group-hover:bg-white/30 rounded-full p-2 transition-all duration-500 group-hover:scale-110">
+        <span class="text-xl group-hover:text-white transition-colors duration-500">✅</span>
+      </div>
+    </div>
+    <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-yellow-500 to-yellow-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+  </div>
+
+  <!-- Upcoming Card -->
+  <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+       data-aos="fade-up" data-aos-delay="500">
+    <div class="absolute inset-0 bg-gradient-to-br from-red-500 to-red-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div class="relative z-10 p-6">
+      <p class="text-gray-500 group-hover:text-red-100 text-sm transition-colors duration-500">Upcoming</p>
+      <p class="text-3xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+        <%= @schedules&.select { |s| s["status"] == "scheduled" }&.count || 0 %>
+      </p>
+      <div class="absolute top-4 right-4 bg-red-100 group-hover:bg-white/30 rounded-full p-2 transition-all duration-500 group-hover:scale-110">
+        <span class="text-xl group-hover:text-white transition-colors duration-500">📅</span>
+      </div>
+    </div>
+    <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-red-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
+  </div>
+</div>
   
-  <!-- Quick Actions -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <a href="/admin/create-exam" class="bg-green-500 text-white rounded-xl p-6 hover:bg-green-600 transition">
-      <div class="text-4xl mb-2">📝</div>
+  <!-- Quick Actions with Animations -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+  <!-- Schedule Exam Card -->
+  <a href="/admin/create-exam" 
+     class="group relative block bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+     data-aos="fade-up" data-aos-delay="100">
+    
+    <!-- Animated overlay that slides across on hover -->
+    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+    
+    <!-- Content -->
+    <div class="relative z-10">
+      <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">📝</div>
       <h3 class="text-xl font-bold">Schedule New Exam</h3>
       <p class="text-green-100">Create and schedule an exam</p>
-    </a>
+    </div>
     
-    <a href="/admin/students" class="bg-blue-500 text-white rounded-xl p-6 hover:bg-blue-600 transition">
-      <div class="text-4xl mb-2">👥</div>
+    <!-- Animated arrow that slides right on hover -->
+    <div class="absolute bottom-4 right-4 transform translate-x-0 group-hover:translate-x-2 transition-transform duration-300">
+      <i class="fas fa-arrow-right text-2xl"></i>
+    </div>
+  </a>
+
+  <!-- Create Teacher Card -->
+  <a href="/admin/create-teacher" 
+     class="group relative block bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+     data-aos="fade-up" data-aos-delay="200">
+    
+    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+    
+    <div class="relative z-10">
+      <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">👨‍🏫</div>
+      <h3 class="text-xl font-bold">Create Teacher</h3>
+      <p class="text-orange-100">Add new teacher accounts</p>
+    </div>
+    
+    <div class="absolute bottom-4 right-4 transform translate-x-0 group-hover:translate-x-2 transition-transform duration-300">
+      <i class="fas fa-arrow-right text-2xl"></i>
+    </div>
+  </a>
+
+  <!-- Manage Students Card -->
+  <a href="/admin/students" 
+     class="group relative block bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+     data-aos="fade-up" data-aos-delay="300">
+    
+    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+    
+    <div class="relative z-10">
+      <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">👥</div>
       <h3 class="text-xl font-bold">Manage Students</h3>
       <p class="text-blue-100">Add or view students</p>
-    </a>
+    </div>
     
-    <a href="/admin/results" class="bg-purple-500 text-white rounded-xl p-6 hover:bg-purple-600 transition">
-      <div class="text-4xl mb-2">📊</div>
-      <h3 class="text-xl font-bold">View Results</h3>
-      <p class="text-purple-100">See all exam results</p>
-    </a>
-  </div>
-  
+    <div class="absolute bottom-4 right-4 transform translate-x-0 group-hover:translate-x-2 transition-transform duration-300">
+      <i class="fas fa-arrow-right text-2xl"></i>
+    </div>
+  </a>
 
-  <!-- Recent Schedules -->
+  <!-- Analytics Card -->
+  <a href="/admin/analytics/enhanced" 
+     class="group relative block bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+     data-aos="fade-up" data-aos-delay="400">
+    
+    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+    
+    <div class="relative z-10">
+      <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">📊</div>
+      <h3 class="text-xl font-bold">Advanced Analytics</h3>
+      <p class="text-purple-100">System-wide insights</p>
+    </div>
+    
+    <div class="absolute bottom-4 right-4 transform translate-x-0 group-hover:translate-x-2 transition-transform duration-300">
+      <i class="fas fa-arrow-right text-2xl"></i>
+    </div>
+  </a>
+</div>
+
+<!-- Second Row of Quick Actions -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+  <!-- Results Card -->
+  <a href="/admin/results" 
+     class="group relative block bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+     data-aos="fade-up" data-aos-delay="500">
+    
+    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+    
+    <div class="relative z-10">
+      <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">📈</div>
+      <h3 class="text-xl font-bold">View Results</h3>
+      <p class="text-indigo-100">See all exam results and analytics</p>
+    </div>
+    
+    <div class="absolute bottom-4 right-4 transform translate-x-0 group-hover:translate-x-2 transition-transform duration-300">
+      <i class="fas fa-arrow-right text-2xl"></i>
+    </div>
+  </a>
+  
+  <!-- Teachers Card -->
+  <a href="/admin/teachers" 
+     class="group relative block bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-xl p-6 overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+     data-aos="fade-up" data-aos-delay="600">
+    
+    <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+    
+    <div class="relative z-10">
+      <div class="text-4xl mb-2 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">👥</div>
+      <h3 class="text-xl font-bold">Manage Teachers</h3>
+      <p class="text-teal-100">View and manage teacher accounts</p>
+    </div>
+    
+    <div class="absolute bottom-4 right-4 transform translate-x-0 group-hover:translate-x-2 transition-transform duration-300">
+      <i class="fas fa-arrow-right text-2xl"></i>
+    </div>
+  </a>
+</div>
+
+  <!-- Recent Schedules with Teacher Info -->
   <div class="bg-white rounded-xl shadow-md p-6">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">Recent Scheduled Exams</h2>
     
-    <% if @schedules.empty? %>
-      <p class="text-gray-600">No exams scheduled yet.</p>
-    <% else %>
+    <% if @schedules && @schedules.any? %>
       <div class="space-y-4">
         <% @schedules.last(5).each do |s| %>
-          <div class="border rounded-lg p-4">
+          <div class="border rounded-lg p-4 hover:shadow-md transition">
             <div class="flex justify-between items-center">
               <div>
                 <h3 class="font-bold text-lg"><%= s["title"] %></h3>
                 <p class="text-gray-600"><%= s["scheduled_date"] %> · <%= s["start_time"] %> - <%= s["end_time"] %></p>
-                <p class="text-sm text-gray-500"><%= s["questions"].count %> questions · <%= s["duration_minutes"] %> minutes</p>
+                <div class="flex items-center gap-4 mt-2">
+                  <span class="text-sm text-gray-500">
+                    <% 
+                      if s["questions"]
+                        question_count = s["questions"].count
+                      elsif s["num_questions"]
+                        question_count = s["num_questions"]
+                      else
+                        question_count = 0
+                      end
+                    %>
+                    <%= question_count %> questions · <%= s["duration_minutes"] %> minutes
+                  </span>
+                  <% if s["assigned_teacher_id"] %>
+                    <% teacher = @teachers&.find { |t| t["id"] == s["assigned_teacher_id"] } %>
+                    <span class="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      👨‍🏫 <%= teacher ? teacher["name"] : "Teacher Assigned" %>
+                    </span>
+                  <% end %>
+                </div>
               </div>
-              <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                <%= s["status"] %>
+              <span class="px-3 py-1 rounded-full text-sm font-semibold
+                <%= s["status"] == 'scheduled' ? 'bg-green-100 text-green-800' : 
+                   (s["status"] == 'active' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800') %>">
+                <%= s["status"] ? s["status"].upcase : "UNKNOWN" %>
               </span>
             </div>
           </div>
         <% end %>
       </div>
+    <% else %>
+      <p class="text-gray-600">No exams scheduled yet. <a href="/admin/create-exam" class="text-green-500 hover:underline">Schedule your first exam</a></p>
     <% end %>
   </div>
-</div>
 
-<div class="mt-4">
-  <a href="/admin/create-admin" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition">
-     Create New Admin
-  </a>
-</div>
-
-<!-- Bottom Action Buttons - EDIT/DELETE at bottom left -->
-<div class="mt-8 flex flex-wrap gap-4 justify-start">
-  <a href="/admin/edit-questions" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition">
-    ✏️ Edit Qns
-  </a>
-  <a href="/admin/delete-questions" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-600 transition">
-    🗑️ Delete Qns
-  </a>
-  <a href="/admin/edit-exams" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-600 transition">
-    ✏️ Edit Exams
-  </a>
-  <a href="/admin/delete-exams" class="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-600 transition">
-    🗑️ Delete Exams
-  </a>
+  <!-- Admin Actions -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Quick Admin Actions</h2>
+      <div class="space-y-3">
+        <a href="/admin/create-admin" class="block bg-purple-100 text-purple-700 px-4 py-3 rounded-lg hover:bg-purple-200 transition">
+          👑 Create New Admin
+        </a>
+        <a href="/admin/edit-questions" class="block bg-blue-100 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-200 transition">
+          ✏️ Edit Questions
+        </a>
+        <a href="/admin/delete-questions" class="block bg-red-100 text-red-700 px-4 py-3 rounded-lg hover:bg-red-200 transition">
+          🗑️ Delete Questions
+        </a>
+      </div>
+    </div>
+    
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4">Exam Management</h2>
+      <div class="space-y-3">
+        <a href="/admin/edit-exams" class="block bg-blue-100 text-blue-700 px-4 py-3 rounded-lg hover:bg-blue-200 transition">
+          ✏️ Edit Scheduled Exams
+        </a>
+        <a href="/admin/delete-exams" class="block bg-red-100 text-red-700 px-4 py-3 rounded-lg hover:bg-red-200 transition">
+          🗑️ Delete Scheduled Exams
+        </a>
+      </div>
+    </div>
+  </div>
 </div>

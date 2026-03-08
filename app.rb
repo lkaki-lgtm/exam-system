@@ -1,10 +1,10 @@
 require 'sinatra'
 require_relative 'database'
+require 'json'
 
 # Disable host protection for ngrok testing
 set :protection, except: :host_authorization
 
-# Allow ngrok domains to bypass host protection
 configure :development do
   set :protection, except: [:host_authorization]
   set :hosts, [
@@ -18,12 +18,29 @@ end
 
 enable :sessions
 
+# ===== HELPER METHODS =====
+helpers do
+  def protected!
+    redirect '/login' unless session[:user_id]
+  end
+
+  def admin_only!
+    redirect '/login?role=admin' unless session[:user_type] == "admin"
+  end
+
+  def teacher_only!
+    redirect '/login?role=teacher' unless session[:user_type] == "teacher"
+  end
+
+  def student_only!
+    redirect '/login?role=student' unless session[:user_type] == "student"
+  end
+end
 
 # Initialize database connection
 db = ExamDatabase.new
 
 # ===== AUTO-UPDATE EXAM STATUSES =====
-# This runs before EVERY request
 before do
   begin
     if db.respond_to?(:update_exam_statuses)
@@ -35,113 +52,73 @@ before do
   end
 end
 
-# These are already covered by the before filter above
-# You don't need separate /student/* and /admin/* filters
-
-# ===== PUBLIC ROUTES (No Login Required) =====
-
-
-# Registration page
-get '/register' do
-  erb :register
-end
-
-# Home page
+# ===== PUBLIC ROUTES =====
 get '/' do
   erb :index
 end
 
-# ===== TEST PAGE - System Health Dashboard =====
-# Add this new route right here!
-get '/test' do
-  # Gather statistics from JSON files
-  begin
-    users_data = File.exist?("users.json") ? JSON.parse(File.read("users.json")) : {"admins" => [], "students" => []}
-    questions_data = File.exist?("questions.json") ? JSON.parse(File.read("questions.json")) : []
-    schedules_data = File.exist?("schedules.json") ? JSON.parse(File.read("schedules.json")) : []
-    attempts_data = File.exist?("attempts.json") ? JSON.parse(File.read("attempts.json")) : []
-    
-    @stats = {
-      users: users_data["students"].count + users_data["admins"].count,
-      questions: questions_data.count,
-      exams: schedules_data.count,
-      attempts: attempts_data.count
-    }
-  rescue => e
-    puts "Error loading stats: #{e.message}"
-    @stats = { users: "?", questions: "?", exams: "?", attempts: "?" }
-  end
-  
-  erb :test
-end
-
-# Registration page
 get '/register' do
   erb :register
 end
-# ... rest of your routes
 
 post '/register' do
-  # Simple password (in production, use bcrypt)
   password = params[:password]
-  
-  if params[:role] == "admin"
-    # Register as admin
+
+  case params[:role]
+  when "admin"
     result = db.register_admin(params[:name], params[:email], password)
-    
     if result.nil?
       @error = "Email already exists or registration failed"
       return erb :register
     end
-    
-    @message = "Registration Successful! Please login."
-    erb :login_new  # Show login page with success message
-  else
-    # Register as student - registration number is required
+    @message = "Admin Registration Successful! Please login."
+
+  when "teacher"
+    @error = "Teacher accounts must be created by an administrator"
+    return erb :register
+
+  else # student
     if params[:reg_number].nil? || params[:reg_number].empty?
       @error = "Registration number is required for students"
       return erb :register
     end
-    
-    # Call register_student with ALL parameters
-    puts "Attempting to register student: #{params[:name]}, #{params[:email]}, #{params[:reg_number]}"
-    
+
     result = db.register_student(
-      params[:name], 
-      params[:email], 
+      params[:name],
+      params[:email],
       params[:reg_number],
       password
     )
-    
+
     if result.nil?
       @error = "Email or Registration number already exists"
       return erb :register
     end
-    
-    puts "✅ Student registered successfully: #{result.inspect}"
-    @message = "Registration Successful! Please login."
-    erb :login_new  # Show login page with success message
+
+    @message = "Student Registration Successful! Please login."
   end
+
+  erb :login_new
 end
 
-# Login page
 get '/login' do
   @role = params[:role] || "student"
   erb :login_new
 end
 
 post '/login' do
-  password_hash = params[:password]
-  user = db.authenticate_user(params[:email], password_hash)
-  
+  user = db.authenticate_user(params[:email], params[:password])
+
   if user
     session[:user_id] = user["user"]["id"]
     session[:user_name] = user["user"]["name"]
     session[:user_type] = user["type"]
-    
-    # Redirect based on role
-    if user["type"] == "admin"
+
+    case user["type"]
+    when "admin"
       redirect '/admin/dashboard'
+    when "teacher"
+      redirect '/teacher/dashboard'
     else
       redirect '/student/dashboard'
     end
@@ -151,225 +128,459 @@ post '/login' do
   end
 end
 
-# Logout
 get '/logout' do
   session.clear
   redirect '/'
 end
 
-# ===== ADMIN ROUTES (Restricted) =====
+# ===== TEST PAGE =====
+get '/test' do
+  begin
+    users_data = File.exist?("users.json") ? JSON.parse(File.read("users.json")) : {"admins" => [], "teachers" => [], "students" => []}
+    questions_data = File.exist?("questions.json") ? JSON.parse(File.read("questions.json")) : []
+    schedules_data = File.exist?("schedules.json") ? JSON.parse(File.read("schedules.json")) : []
+    attempts_data = File.exist?("attempts.json") ? JSON.parse(File.read("attempts.json")) : []
 
-# Secret admin creation page (only accessible if you're already admin)
+    @stats = {
+      users: users_data["students"].count + users_data["admins"].count + users_data["teachers"].to_a.count,
+      questions: questions_data.count,
+      exams: schedules_data.count,
+      attempts: attempts_data.count
+    }
+  rescue => e
+    puts "Error loading stats: #{e.message}"
+    @stats = { users: "?", questions: "?", exams: "?", attempts: "?" }
+  end
+
+  erb :test
+end
+
+# ===== ADMIN ROUTES =====
 get '/admin/create-admin' do
-  # Only existing admins can access this
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
+  admin_only!
   erb :create_admin
 end
 
 post '/admin/create-admin' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
-  result = db.register_admin(
-    params[:name],
-    params[:email],
-    params[:password]
-  )
-  
+  admin_only!
+  result = db.register_admin(params[:name], params[:email], params[:password])
   if result.nil?
     @error = "Email already exists"
     erb :create_admin
   else
     @message = "✅ New admin created successfully!"
-    erb :admin_dashboard
+    redirect '/admin/dashboard'
   end
 end
 
-# Admin dashboard
-get '/admin/dashboard' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
+get '/admin/create-teacher' do
+  admin_only!
+  erb :create_teacher
+end
+
+post '/admin/create-teacher' do
+  admin_only!
+  result = db.register_teacher(params[:name], params[:email], params[:password])
+  if result.nil?
+    @error = "Email already exists"
+    erb :create_teacher
+  else
+    @message = "✅ New teacher created successfully!"
+    redirect '/admin/dashboard'
   end
-  
-  @students = db.get_all_students
-  @schedules = db.get_all_schedules
-  @attempts = db.get_all_attempts
-  @questions = db.get_all_questions
-  
+end
+
+get '/admin/dashboard' do
+  admin_only!
+  @students = db.get_all_students || []
+  @teachers = db.get_all_teachers || []
+  @schedules = db.get_all_schedules || []
+  @attempts = db.get_all_attempts || []
+  @questions = db.get_all_questions || []
   erb :admin_dashboard
 end
 
-# Admin: Manage questions
+get '/admin/analytics' do
+  admin_only!
+  @analytics = db.get_system_analytics
+  erb :admin_analytics
+end
+
+get '/admin/analytics/enhanced' do
+  admin_only!
+  @questions = db.get_all_questions
+  @question_stats = db.get_question_analytics
+  @topic_performance = db.get_topic_performance
+  days = params[:days] ? params[:days].to_i : 30
+  @trends = db.get_student_performance_trends(days)
+  erb :admin_analytics_enhanced
+end
+
 get '/admin/questions' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
-  end
-  
+  admin_only!
   @questions = db.get_all_questions
   erb :admin_questions
 end
 
-# Admin: Add question
 post '/admin/questions/add' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
-  end
-  
+  admin_only!
   db.add_question(
     params[:text],
     params[:opt1],
     params[:opt2],
     params[:opt3],
     params[:opt4],
-    params[:correct]
+    params[:correct],
+    params[:difficulty],
+    params[:topic]
   )
-  
   redirect '/admin/questions'
 end
 
-# Admin: Delete question
-post '/admin/questions/delete/:id' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
-  end
-  
-  # Add delete functionality if needed
-  redirect '/admin/questions'
-end
-
-# Admin: Create exam schedule
 get '/admin/create-exam' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
-  end
-  
+  admin_only!
   @questions = db.get_all_questions
+  @teachers = db.get_all_teachers || []
   erb :create_exam
 end
 
 post '/admin/create-exam' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
-  end
-  
-  # Get selected question IDs from form
+  admin_only!
   question_ids = params[:question_ids] || []
   all_questions = db.get_all_questions
   selected_questions = all_questions.select { |q| question_ids.include?(q["id"]) }
-  
+  duration = params[:duration].to_i
+
   db.create_exam_schedule(
     params[:title],
     params[:description],
-    params[:duration].to_i,
+    duration,
     params[:date],
     params[:start_time],
     params[:end_time],
-    selected_questions
+    selected_questions,
+    params[:assigned_teacher_id]
   )
-  
   redirect '/admin/dashboard'
 end
 
-# Admin: View all students
 get '/admin/students' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
-  end
-  
+  admin_only!
   @students = db.get_all_students
+  @attempts = db.get_all_attempts
   erb :admin_students
 end
 
-# Admin: Add student manually
-post '/admin/students/add' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
+get '/admin/teachers' do
+  admin_only!
+  @teachers = db.get_all_teachers
+  @schedules = db.get_all_schedules
+  @teacher_students = {}
+  @teachers.each do |teacher|
+    teacher_exams = @schedules.select { |s| s["assigned_teacher_id"] == teacher["id"] }
+    student_ids = teacher_exams.flat_map { |e| e["assigned_students"] || [] }.uniq
+    @teacher_students[teacher["id"]] = student_ids.map { |id| db.get_student(id) }.compact
   end
-  
-  password_hash = params[:password]
-  db.register_student(
-    params[:name], 
-    params[:email], 
-    params[:reg_number], 
-    password_hash
-  )
-  
-  redirect '/admin/students'
+  erb :admin_teachers
 end
 
-# Admin: View all results
 get '/admin/results' do
-  # Check if user is admin
-  if session[:user_type] != "admin"
-    redirect '/login?role=admin'
-  end
-  
+  admin_only!
   @attempts = db.get_all_attempts
   @schedules = db.get_all_schedules
   @students = db.get_all_students
-  
-  # Calculate percentage for each attempt
+  @teachers = db.get_all_teachers
   @attempts.each do |attempt|
     schedule = @schedules.find { |s| s["id"] == attempt["schedule_id"] }
     if schedule && attempt["score"]
-      total_questions = schedule["questions"].length
-      attempt["calculated_percentage"] = total_questions > 0 ? 
-        ((attempt["score"].to_f / total_questions) * 100).round(2) : 0
+      total_questions = (schedule["questions"] || []).length
+      attempt["calculated_percentage"] = total_questions > 0 ? ((attempt["score"].to_f / total_questions) * 100).round(2) : 0
     else
       attempt["calculated_percentage"] = 0
     end
   end
-  
   erb :admin_results
 end
 
-# ===== STUDENT ROUTES (Restricted) =====
+get '/admin/edit-questions' do
+  admin_only!
+  @questions = db.get_all_questions
+  erb :admin_edit_questions
+end
 
-# Student dashboard
-get '/student/dashboard' do
-  redirect '/login?role=student' unless session[:user_type] == "student"
+post '/admin/questions/update/:id' do
+  admin_only!
+  questions = JSON.parse(File.read("questions.json"))
+  question = questions.find { |q| q["id"] == params[:id] }
+  if question
+    question["text"] = params[:text]
+    question["options"] = [params[:opt1], params[:opt2], params[:opt3], params[:opt4]]
+    question["correct"] = params[:correct]
+    question["difficulty"] = params[:difficulty]
+    question["topic"] = params[:topic]
+    question["updated_at"] = Time.now.to_s
+    File.write("questions.json", JSON.dump(questions))
+    puts "✅ Question updated: #{params[:id]}"
+  end
+  redirect '/admin/edit-questions'
+end
+
+get '/admin/edit-exams' do
+  admin_only!
+  @schedules = db.get_all_schedules
+  @all_questions = db.get_all_questions
+  @all_teachers = db.get_all_teachers
+  erb :admin_edit_exams
+end
+
+post '/admin/exams/update/:id' do
+  admin_only!
+  schedules = JSON.parse(File.read("schedules.json"))
+  schedule = schedules.find { |s| s["id"] == params[:id] }
   
-  # Double-check statuses
+  if schedule
+    question_ids = params[:question_ids] || []
+    all_questions = db.get_all_questions
+    selected_questions = all_questions.select { |q| question_ids.include?(q["id"]) }
+    
+    schedule["title"] = params[:title]
+    schedule["description"] = params[:description]
+    schedule["duration_minutes"] = params[:duration].to_i
+    schedule["scheduled_date"] = params[:date]
+    schedule["start_time"] = params[:start_time]
+    schedule["end_time"] = params[:end_time]
+    schedule["status"] = params[:status]
+    
+    # Handle both formats
+    if schedule["questions"].is_a?(Array)
+      schedule["questions"] = selected_questions
+    elsif schedule["question_pool"].is_a?(Array)
+      # Keep the pool but update selected questions? 
+      # For simplicity, convert to questions array
+      schedule["questions"] = selected_questions
+      schedule.delete("question_pool")
+      schedule.delete("num_questions")
+    end
+    
+    schedule["assigned_teacher_id"] = params[:assigned_teacher_id]
+    schedule["updated_at"] = Time.now.to_s
+    
+    File.write("schedules.json", JSON.dump(schedules))
+    puts "✅ Exam updated: #{params[:id]}"
+  end
+  redirect '/admin/edit-exams'
+end
+
+post '/admin/questions/delete/:id' do
+  admin_only!
+  questions = JSON.parse(File.read("questions.json"))
+  questions.delete_if { |q| q["id"] == params[:id] }
+  File.write("questions.json", JSON.dump(questions))
+  redirect '/admin/delete-questions'
+end
+
+post '/admin/questions/delete-all' do
+  admin_only!
+  File.write("questions.json", JSON.dump([]))
+  redirect '/admin/delete-questions'
+end
+
+get '/admin/delete-exams' do
+  admin_only!
+  @schedules = db.get_all_schedules
+  erb :admin_delete_exams
+end
+
+post '/admin/exams/delete/:id' do
+  admin_only!
+  schedules = JSON.parse(File.read("schedules.json"))
+  schedules.delete_if { |s| s["id"] == params[:id] }
+  File.write("schedules.json", JSON.dump(schedules))
+  redirect '/admin/delete-exams'
+end
+
+post '/admin/exams/delete-all' do
+  admin_only!
+  File.write("schedules.json", JSON.dump([]))
+  redirect '/admin/delete-exams'
+end
+
+# ===== TEACHER ROUTES =====
+get '/teacher/dashboard' do
+  teacher_only!
+  @my_exams = db.get_teacher_exams(session[:user_id])
+  @my_students = db.get_teacher_students(session[:user_id])
+  @active_exams = db.get_active_teacher_exams(session[:user_id])
+  @attempts = db.get_teacher_exam_attempts(session[:user_id])
+  erb :teacher_dashboard
+end
+
+get '/teacher/exam/:exam_id/assign-students' do
+  teacher_only!
+  @exam = db.get_schedule(params[:exam_id])
+  @available_students = db.get_all_students
+  @assigned_students = db.get_exam_students(params[:exam_id])
+  erb :teacher_assign_students
+end
+
+post '/teacher/exam/:exam_id/assign-students' do
+  teacher_only!
+  student_ids = params[:student_ids] || []
+  db.assign_students_to_exam(params[:exam_id], student_ids)
+  redirect "/teacher/exam/#{params[:exam_id]}/control"
+end
+
+get '/teacher/exam/:exam_id/proctoring-report' do
+  teacher_only!
+  @exam = db.get_schedule(params[:exam_id])
+  if @exam["assigned_teacher_id"] != session[:user_id]
+    @message = "You don't have permission to view this exam's proctoring report."
+    return erb :message
+  end
+  @report = db.get_proctoring_report(params[:exam_id])
+  erb :teacher_proctoring_report
+end
+
+get '/teacher/exam/:exam_id/control' do
+  teacher_only!
+  @exam = db.get_schedule(params[:exam_id])
+  @active_attempts = db.get_active_exam_attempts(params[:exam_id])
+  @students = db.get_all_students
+  erb :teacher_exam_control
+end
+
+post '/teacher/exam/remove-student' do
+  teacher_only!
+  attempt_id = params[:attempt_id]
+  reason = params[:reason]
+  db.remove_student_for_malpractice(attempt_id, reason, session[:user_name])
+  db.log_proctoring_violation(attempt_id, "teacher_removal", { reason: reason, removed_by: session[:user_name] })
+  redirect "/teacher/exam/#{params[:exam_id]}/control"
+end
+
+post '/teacher/exam/force-submit' do
+  teacher_only!
+  attempt_id = params[:attempt_id]
+  
+  attempts = JSON.parse(File.read("attempts.json"))
+  attempt = attempts.find { |a| a["id"] == attempt_id }
+  
+  if attempt.nil?
+    session[:error] = "Attempt not found"
+    redirect back
+  end
+
+  schedule = db.get_schedule(attempt["schedule_id"])
+  questions = schedule["questions"]
+  answers = attempt["answers"] || []
+
+  score = 0
+  answers.each_with_index do |ans, i|
+    if ans && ans["answer"] && i < questions.length
+      if ans["answer"] == questions[i]["correct"]
+        score += 1
+      end
+    end
+  end
+
+  attempt["status"] = "completed"
+  attempt["score"] = score
+  attempt["end_time"] = Time.now.to_s
+  attempt["completed_by_teacher"] = true
+  attempt["teacher_notes"] = "Exam stopped by teacher"
+  
+  File.write("attempts.json", JSON.dump(attempts))
+  
+  student = db.get_student(attempt["student_id"])
+  if student && schedule
+    db.save_result(student["name"], score, schedule["questions"].length)
+  end
+  
+  session[:success] = "Student exam stopped and graded. Score: #{score}/#{questions.length}"
+  redirect "/teacher/exam/#{schedule["id"]}/control"
+end
+
+get '/teacher/exam/monitor/:attempt_id' do
+  teacher_only!
+  @attempt = db.get_attempt(params[:attempt_id])
+  @student = db.get_student(@attempt["student_id"])
+  @exam = db.get_schedule(@attempt["schedule_id"])
+  erb :teacher_live_monitor
+end
+
+get '/teacher/results' do
+  teacher_only!
+  @my_exams = db.get_teacher_exams(session[:user_id])
+  @attempts = db.get_teacher_exam_attempts(session[:user_id])
+  @schedules = db.get_all_schedules
+  @students = db.get_all_students
+  erb :teacher_results
+end
+
+get '/teacher/students' do
+  teacher_only!
+  @students = db.get_all_students
+  @attempts = db.get_all_attempts
+  erb :admin_students
+end
+
+# ===== STUDENT ROUTES =====
+get '/student/dashboard' do
+  student_only!
   db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
-  @active_exams = db.get_active_schedules
-  @upcoming_exams = db.get_upcoming_schedules
+  @assigned_exams = db.get_student_assigned_exams(session[:user_id])
+  @active_exams = db.get_active_student_exams(session[:user_id])
+  @upcoming_exams = db.get_upcoming_student_exams(session[:user_id])
   @my_attempts = db.get_student_attempts(session[:user_id])
   @schedules = db.get_all_schedules
-  
+  @analytics = db.get_student_analytics(session[:user_id])
   erb :student_dashboard
 end
 
-# Student: Take exam
-get '/student/exam/:schedule_id' do
-  # Check if user is student
-  if session[:user_type] != "student"
-    redirect '/login?role=student'
+get '/student/exam/check-status' do
+  student_only!
+  content_type :json
+
+  attempt_id = params[:attempt_id]
+  attempts = JSON.parse(File.read("attempts.json")) rescue []
+  attempt = attempts.find { |a| a["id"] == attempt_id }
+
+  if attempt
+    { status: attempt["status"] }.to_json
+  else
+    { status: "not_found" }.to_json
   end
-  
+end
+
+get '/student/exam/:schedule_id' do
+  student_only!
+
+  schedule_id = params[:schedule_id]
+  student_id = session[:user_id]
+
+  if db.student_has_final_attempt?(student_id, schedule_id)
+    @message = "Your exam attempt is already finished."
+    return erb :message
+  end
+
   @schedule_id = params[:schedule_id]
-  schedules = db.get_all_schedules
-  @exam = schedules.find { |s| s["id"] == @schedule_id }
+  @exam = db.get_schedule(@schedule_id)
   
-  # Check if exam exists
+
+  unless db.student_assigned_to_exam?(session[:user_id], @schedule_id)
+    @message = "You are not assigned to this exam"
+    return erb :message
+  end
+
   if @exam.nil?
     @message = "Exam not found"
     return erb :message
   end
-  
-  # Check if exam is currently active
+
   now = Time.now
   begin
     start_time = Time.parse("#{@exam["scheduled_date"]} #{@exam["start_time"]}")
     end_time = Time.parse("#{@exam["scheduled_date"]} #{@exam["end_time"]}")
-    
     if now < start_time
       @message = "This exam hasn't started yet. It starts at #{@exam["start_time"]} on #{@exam["scheduled_date"]}"
       return erb :message
@@ -381,69 +592,181 @@ get '/student/exam/:schedule_id' do
     @message = "Error checking exam time: #{e.message}"
     return erb :message
   end
-  
-  # Check if student already attempted this exam
-  existing_attempt = db.get_student_attempts(session[:user_id]).find { |a| a["schedule_id"] == @schedule_id }
-  if existing_attempt && existing_attempt["status"] == "completed"
-    @message = "You have already taken this exam. You cannot take it again."
+
+  validation = db.validate_attempt_access(session[:user_id], @schedule_id)
+  unless validation[:allowed]
+    @message = validation[:message]
     return erb :message
   end
-  
-  # Create exam attempt
-  @attempt = db.create_exam_attempt(session[:user_id], @schedule_id)
-  # Randomize questions for each student
-  @questions = @exam["questions"].shuffle
-  
+
+  if validation[:attempt]
+    @attempt = validation[:attempt]
+    puts "📝 Using existing attempt: #{@attempt['id']}"
+  else
+    @attempt = db.create_exam_attempt(session[:user_id], @schedule_id)
+    if @attempt.nil?
+      @message = "Unable to start exam. Please contact your teacher."
+      return erb :message
+    end
+  end
+
+  attempt_start = Time.parse(@attempt["start_time"].to_s) rescue Time.now
+  duration_seconds = @exam["duration_minutes"].to_i * 60
+  elapsed_seconds = (Time.now - attempt_start).to_i
+  @remaining_seconds = [duration_seconds - elapsed_seconds, 0].max
+
+  @answered = []
+if @attempt["answers"]
+  @attempt["answers"].each do |ans|
+    if ans && ans["answer"] && !ans["question_index"].nil?
+      @answered << ans["question_index"]
+    end
+  end
+end
+
+  @questions = @exam["questions"]
+
+  @marked = @attempt["marked_questions"] || []
   erb :scheduled_exam
 end
 
-# Student: Submit exam
+post '/student/exam/save-answer' do
+  content_type :json
+
+  request.body.rewind
+  data = JSON.parse(request.body.read) rescue params
+
+  attempt_id = data["attempt_id"] || data[:attempt_id]
+  question_index = (data["question_index"] || data[:question_index]).to_i
+  answer = data["answer"] || data[:answer]
+
+  db.save_student_answer(attempt_id, question_index, answer)
+
+  { success: true }.to_json
+end 
+
 post '/student/exam/submit' do
-  # Check if user is student
-  if session[:user_type] != "student"
-    redirect '/login?role=student'
-  end
-  
+  student_only!
   attempt_id = params[:attempt_id]
   questions_json = params[:questions]
-  
+  proctoring_data = params[:proctoring] ? JSON.parse(params[:proctoring]) : {}
+
   begin
     questions = JSON.parse(questions_json)
   rescue
     questions = []
   end
-  
-  # Calculate score
+
   score = 0
   answers = []
-  
   questions.each_with_index do |q, i|
     answer = params["q#{i}"]
-    answers << {"question_id" => q["id"], "answer" => answer}
+    answers << { "question_id" => q["id"], "answer" => answer }
     score += 1 if answer == q["correct"]
   end
-  
-  db.submit_exam_attempt(attempt_id, answers, score)
-  
+
+  feedback = db.generate_feedback(attempt_id, answers, questions)
+  db.submit_exam_attempt(
+    attempt_id,
+    answers,
+    score,
+    feedback,
+    proctoring_data["violations"],
+    proctoring_data["warnings"]
+  )
   redirect '/student/dashboard'
 end
 
-# Student: View results
-get '/student/results' do
-  # Check if user is student
-  if session[:user_type] != "student"
-    redirect '/login?role=student'
+post '/student/exam/mark-question' do
+  student_only!
+  content_type :json
+
+  request.body.rewind
+  data = JSON.parse(request.body.read) rescue params
+
+  attempt_id = data["attempt_id"] || data[:attempt_id]
+  question_index = (data["question_index"] || data[:question_index]).to_i
+  marked_value = data["marked"] || data[:marked]
+  marked = marked_value == true || marked_value == "true"
+
+  db.mark_question_for_review(attempt_id, question_index, marked)
+  { success: true }.to_json
+end
+
+post '/student/exam/report-violation' do
+  student_only!
+  content_type :json
+
+  request.body.rewind
+  data = JSON.parse(request.body.read) rescue params
+
+  attempt_id = data["attempt_id"] || data[:attempt_id]
+  violation_type = data["type"] || data[:type]
+  details = data["details"] || data[:details] || data["message"] || data[:message] || data
+
+  db.log_proctoring_violation(attempt_id, violation_type, details)
+  { success: true }.to_json
+end
+
+post '/student/exam/terminate' do
+  student_only!
+  content_type :json
+
+  request.body.rewind
+  data = JSON.parse(request.body.read) rescue params
+
+  attempt_id = data["attempt_id"] || data[:attempt_id]
+  reason = data["reason"] || data[:reason] || "Auto-terminated by proctoring system"
+
+  attempts = JSON.parse(File.read("attempts.json")) rescue []
+  attempt = attempts.find { |a| a["id"] == attempt_id }
+
+  if attempt
+    attempt["status"] = "terminated_for_malpractice"
+    attempt["termination_reason"] = reason
+    attempt["terminated_at"] = Time.now.to_s
+    attempt["end_time"] = Time.now.to_s
+    attempt["score"] = 0
+
+    File.write("attempts.json", JSON.pretty_generate(attempts))
+
+    violations = JSON.parse(File.read("violations.json")) rescue []
+    violations << {
+      "id" => "violation_#{Time.now.to_i}",
+      "attempt_id" => attempt_id,
+      "type" => "exam_terminated",
+      "details" => { reason: reason },
+      "timestamp" => Time.now.to_s
+    }
+    File.write("violations.json", JSON.pretty_generate(violations))
+
+    puts "TERMINATE ROUTE HIT"
+    puts "Attempt ID received: #{attempt_id}"
+    puts "Attempt found: #{!attempt.nil?}"
+
+    { success: true, message: "Exam terminated", redirect: "/student/dashboard" }.to_json
+  else
+    { success: false, message: "Attempt not found" }.to_json
   end
-  
+end
+
+get '/student/results' do
+  student_only!
   @attempts = db.get_student_attempts(session[:user_id])
   @schedules = db.get_all_schedules
-  
+  @analytics = db.get_student_performance_analytics(session[:user_id])
   erb :student_results
 end
 
-# ===== TEMPORARY REDIRECTS FOR OLD ROUTES =====
-# These redirect old URLs to new ones
+get '/student/exam/get-answers' do
+  student_only!
+  attempt_id = params[:attempt_id]
+  attempts = JSON.parse(File.read("attempts.json"))
+  attempt = attempts.find { |a| a["id"] == attempt_id }
+  { answers: attempt ? attempt["answers"] : [] }.to_json
+end
 
+# ===== TEMPORARY REDIRECTS =====
 get '/admin' do
   redirect '/admin/dashboard'
 end
@@ -461,8 +784,11 @@ get '/exam' do
 end
 
 get '/dashboard' do
-  if session[:user_type] == "admin"
+  case session[:user_type]
+  when "admin"
     redirect '/admin/dashboard'
+  when "teacher"
+    redirect '/teacher/dashboard'
   else
     redirect '/student/dashboard'
   end
@@ -470,128 +796,4 @@ end
 
 get '/exams' do
   redirect '/student/dashboard'
-end
-
-# ===== EDIT QUESTIONS ROUTES =====
-
-# Edit questions page
-get '/admin/edit-questions' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  @questions = db.get_all_questions
-  erb :admin_edit_questions
-end
-
-# Update question
-post '/admin/questions/update/:id' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
-  questions = JSON.parse(File.read("questions.json"))
-  question = questions.find { |q| q["id"] == params[:id] }
-  
-  if question
-    question["text"] = params[:text]
-    question["options"] = [params[:opt1], params[:opt2], params[:opt3], params[:opt4]]
-    question["correct"] = params[:correct]
-    question["updated_at"] = Time.now.to_s
-    
-    File.write("questions.json", JSON.dump(questions))
-    puts "✅ Question updated: #{params[:id]}"
-  end
-  
-  redirect '/admin/edit-questions'
-end
-
-# ===== EDIT EXAMS ROUTES =====
-
-# Edit exams page
-get '/admin/edit-exams' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  @schedules = db.get_all_schedules
-  @all_questions = db.get_all_questions
-  erb :admin_edit_exams
-end
-
-# Update exam
-post '/admin/exams/update/:id' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
-  schedules = JSON.parse(File.read("schedules.json"))
-  schedule = schedules.find { |s| s["id"] == params[:id] }
-  
-  if schedule
-    # Get selected questions
-    question_ids = params[:question_ids] || []
-    all_questions = db.get_all_questions
-    selected_questions = all_questions.select { |q| question_ids.include?(q["id"]) }
-    
-    # Update schedule
-    schedule["title"] = params[:title]
-    schedule["description"] = params[:description]
-    schedule["duration_minutes"] = params[:duration].to_i
-    schedule["scheduled_date"] = params[:date]
-    schedule["start_time"] = params[:start_time]
-    schedule["end_time"] = params[:end_time]
-    schedule["status"] = params[:status]
-    schedule["questions"] = selected_questions
-    schedule["updated_at"] = Time.now.to_s
-    
-    File.write("schedules.json", JSON.dump(schedules))
-    puts "✅ Exam updated: #{params[:id]}"
-  end
-  
-  redirect '/admin/edit-exams'
-end
-
-# ===== DELETE ROUTES =====
-
-# Delete questions page
-get '/admin/delete-questions' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  @questions = db.get_all_questions
-  erb :admin_delete_questions
-end
-
-# Delete single question
-post '/admin/questions/delete/:id' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
-  questions = JSON.parse(File.read("questions.json"))
-  questions.delete_if { |q| q["id"] == params[:id] }
-  File.write("questions.json", JSON.dump(questions))
-  
-  redirect '/admin/delete-questions'
-end
-
-# Delete ALL questions
-post '/admin/questions/delete-all' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
-  File.write("questions.json", JSON.dump([]))
-  redirect '/admin/delete-questions'
-end
-
-# Delete exams page
-get '/admin/delete-exams' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  @schedules = db.get_all_schedules
-  erb :admin_delete_exams
-end
-
-# Delete single exam
-post '/admin/exams/delete/:id' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
-  schedules = JSON.parse(File.read("schedules.json"))
-  schedules.delete_if { |s| s["id"] == params[:id] }
-  File.write("schedules.json", JSON.dump(schedules))
-  
-  redirect '/admin/delete-exams'
-end
-
-# Delete ALL exams
-post '/admin/exams/delete-all' do
-  redirect '/login?role=admin' unless session[:user_type] == "admin"
-  
-  File.write("schedules.json", JSON.dump([]))
-  redirect '/admin/delete-exams'
 end

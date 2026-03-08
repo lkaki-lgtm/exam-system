@@ -1,0 +1,343 @@
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">📊 Advanced Analytics</h1>
+    <div class="flex gap-4">
+      <a href="/admin/analytics" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition">
+        Basic Analytics
+      </a>
+      <a href="/admin/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+        ← Back
+      </a>
+    </div>
+  </div>
+
+  <!-- Date Range Filter -->
+  <div class="bg-white rounded-xl shadow-lg p-6">
+    <div class="flex gap-4 items-center">
+      <label class="font-semibold text-gray-700">Date Range:</label>
+      <select id="dateRange" class="px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-purple-500 transition">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last year</option>
+      </select>
+      <button onclick="refreshCharts()" class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 transition">
+        Apply
+      </button>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-blue-100 text-sm">Total Questions</p>
+      <p class="text-3xl font-bold mt-2"><%= @questions.count %></p>
+    </div>
+    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-green-100 text-sm">Avg. Question Success</p>
+      <%
+        avg_success = 0
+        if @question_stats && @question_stats.any?
+          total = @question_stats.values.sum { |s| s[:correct_percentage] }
+          avg_success = (total / @question_stats.count).round(2)
+        end
+      %>
+      <p class="text-3xl font-bold mt-2"><%= avg_success %>%</p>
+    </div>
+    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-purple-100 text-sm">Topics Covered</p>
+      <p class="text-3xl font-bold mt-2"><%= @topic_performance.count %></p>
+    </div>
+    <div class="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
+      <p class="text-yellow-100 text-sm">Total Attempts</p>
+      <p class="text-3xl font-bold mt-2"><%= @trends[:attempts].sum %></p>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Performance Trend -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📈 Performance Trend</h2>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Topic Performance -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📚 Topic Performance</h2>
+      <div class="chart-container">
+        <canvas id="topicChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Difficulty Distribution -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Difficulty Distribution</h2>
+      <div class="chart-container">
+        <canvas id="difficultyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Question Success Rate -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">✅ Question Success Rate</h2>
+      <div class="chart-container">
+        <canvas id="successChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question Performance Table -->
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="bg-gray-50 px-6 py-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">📋 Question Performance Details</h2>
+    </div>
+    
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Question</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Topic</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Difficulty</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Times Used</th>
+            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Success Rate</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <% @question_stats.each do |id, stats| %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 text-sm text-gray-800"><%= stats[:text] %></td>
+              <td class="px-6 py-4 text-sm text-gray-600"><%= stats[:topic].capitalize %></td>
+              <td class="px-6 py-4">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold
+                  <%= stats[:difficulty] == 'easy' ? 'bg-green-100 text-green-800' : 
+                     (stats[:difficulty] == 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') %>">
+                  <%= stats[:difficulty].capitalize %>
+                </span>
+              </td>
+              <td class="px-6 py-4 text-sm text-gray-600"><%= stats[:times_used] %></td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold
+                    <%= stats[:correct_percentage] >= 70 ? 'text-green-600' : 
+                       (stats[:correct_percentage] >= 40 ? 'text-yellow-600' : 'text-red-600') %>">
+                    <%= stats[:correct_percentage] %>%
+                  </span>
+                  <div class="w-16 bg-gray-200 rounded-full h-2">
+                    <div class="<%= stats[:correct_percentage] >= 70 ? 'bg-green-500' : 
+                                   (stats[:correct_percentage] >= 40 ? 'bg-yellow-500' : 'bg-red-500') %> 
+                                 rounded-full h-2" style="width: <%= stats[:correct_percentage] %>%"></div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Initialize all charts
+  document.addEventListener('DOMContentLoaded', function() {
+    initTrendChart();
+    initTopicChart();
+    initDifficultyChart();
+    initSuccessChart();
+  });
+
+  // Trend Chart
+  function initTrendChart() {
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: <%= @trends[:labels].to_json %>,
+        datasets: [{
+          label: 'Average Score %',
+          data: <%= @trends[:scores].to_json %>,
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          tension: 0.4,
+          fill: true,
+          yAxisID: 'y'
+        }, {
+          label: 'Number of Attempts',
+          data: <%= @trends[:attempts].to_json %>,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.4,
+          fill: true,
+          yAxisID: 'y1'
+        }]
+      },
+      options: {
+        responsive: true,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        },
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: {
+              display: true,
+              text: 'Score %'
+            },
+            min: 0,
+            max: 100
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: {
+              display: true,
+              text: 'Attempts'
+            },
+            min: 0,
+            grid: {
+              drawOnChartArea: false
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Topic Performance Chart
+  function initTopicChart() {
+    const ctx = document.getElementById('topicChart').getContext('2d');
+    const topics = <%= @topic_performance.keys.to_json %>;
+    const percentages = <%= @topic_performance.values.map { |v| v[:percentage] }.to_json %>;
+    
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: topics.map(t => t.charAt(0).toUpperCase() + t.slice(1)),
+        datasets: [{
+          label: 'Success Rate %',
+          data: percentages,
+          backgroundColor: 'rgba(139, 92, 246, 0.8)',
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Success Rate %'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Difficulty Distribution Chart
+  function initDifficultyChart() {
+    const ctx = document.getElementById('difficultyChart').getContext('2d');
+    const questions = <%= @question_stats.values.to_json %>;
+    
+    const easy = questions.filter(q => q.difficulty === 'easy').length;
+    const medium = questions.filter(q => q.difficulty === 'medium').length;
+    const hard = questions.filter(q => q.difficulty === 'hard').length;
+    
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Easy', 'Medium', 'Hard'],
+        datasets: [{
+          data: [easy, medium, hard],
+          backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '65%',
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    });
+  }
+
+  // Question Success Rate Chart
+  function initSuccessChart() {
+    const ctx = document.getElementById('successChart').getContext('2d');
+    const questions = <%= @question_stats.values.to_json %>;
+    
+    // Sort by success rate
+    const sorted = questions.sort((a, b) => a.correct_percentage - b.correct_percentage);
+    const labels = sorted.map(q => q.text.substring(0, 30) + '...');
+    const data = sorted.map(q => q.correct_percentage);
+    const colors = data.map(rate => 
+      rate >= 70 ? '#10b981' : (rate >= 40 ? '#f59e0b' : '#ef4444')
+    );
+    
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Success Rate %',
+          data: data,
+          backgroundColor: colors,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        indexAxis: 'y',
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            max: 100,
+            title: {
+              display: true,
+              text: 'Success Rate %'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Refresh charts with new date range
+  function refreshCharts() {
+    const days = document.getElementById('dateRange').value;
+    window.location.href = `/admin/analytics/enhanced?days=${days}`;
+  }
+</script>

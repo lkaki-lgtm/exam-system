@@ -2,20 +2,36 @@
   <div class="flex justify-between items-center">
     <h1 class="text-4xl font-bold text-gray-800">🗑️ Delete Scheduled Exams</h1>
     <a href="/admin/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
-      ← Back
+      ← Back to Dashboard
     </a>
+  </div>
+
+  <!-- Warning Banner -->
+  <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <span class="text-2xl">⚠️</span>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm text-yellow-700">
+          <strong>Warning:</strong> Deleting exams will also delete all associated student attempts and results. 
+          This action cannot be undone.
+        </p>
+      </div>
+    </div>
   </div>
 
   <!-- Danger Zone - Delete All -->
   <div class="bg-red-50 border-2 border-red-200 rounded-xl p-6">
-    <h2 class="text-2xl font-bold text-red-800 mb-4">⚠️ NOTE</h2>
+    <h2 class="text-2xl font-bold text-red-800 mb-4">⚠️ Danger Zone</h2>
     <div class="flex items-center justify-between">
       <div>
         <p class="font-semibold text-red-700">Delete ALL Scheduled Exams</p>
         <p class="text-sm text-red-600">This action cannot be undone. All exams will be permanently removed.</p>
+        <p class="text-xs text-red-500 mt-1">Affected exams: <%= @schedules&.count || 0 %> scheduled exams</p>
       </div>
       <form action="/admin/exams/delete-all" method="post" 
-            onsubmit="return confirm('⚠️ Are you ABSOLUTELY sure? This will delete ALL scheduled exams!')">
+            onsubmit="return confirm('⚠️ Are you ABSOLUTELY sure? This will delete ALL <%= @schedules&.count || 0 %> scheduled exams and their attempts!')">
         <button type="submit" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition">
           Delete All
         </button>
@@ -25,11 +41,12 @@
 
   <!-- Individual Exams -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-    <div class="bg-gray-50 px-6 py-4 border-b">
+    <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
       <h2 class="text-xl font-bold text-gray-800">Select Exams to Delete</h2>
+      <span class="text-sm text-gray-500"><%= @schedules&.count || 0 %> exams total</span>
     </div>
 
-    <% if @schedules.empty? %>
+    <% if @schedules.blank? %>
       <div class="text-center py-12">
         <p class="text-gray-500">No scheduled exams to delete.</p>
       </div>
@@ -38,19 +55,41 @@
         <% @schedules.each do |s| %>
           <div class="p-6 hover:bg-gray-50 flex items-center justify-between">
             <div class="flex-1">
-              <p class="font-bold text-gray-800"><%= s["title"] %></p>
-              <p class="text-sm text-gray-600 mt-1"><%= s["description"] %></p>
-              <div class="flex flex-wrap gap-4 mt-2 text-sm">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="font-bold text-gray-800"><%= s["title"] %></span>
+                <span class="px-2 py-1 rounded-full text-xs font-semibold
+                  <%= s["status"] == 'scheduled' ? 'bg-green-100 text-green-800' : 
+                     (s["status"] == 'active' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800') %>">
+                  <%= s["status"]&.upcase || "UNKNOWN" %>
+                </span>
+                <% if s["assigned_teacher_id"] %>
+                  <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                    👨‍🏫 Teacher Assigned
+                  </span>
+                <% end %>
+              </div>
+              <p class="text-sm text-gray-600 mb-2"><%= s["description"] %></p>
+              <div class="flex flex-wrap gap-4 text-sm">
                 <span class="text-gray-500">📅 <%= s["scheduled_date"] %></span>
                 <span class="text-gray-500">⏰ <%= s["start_time"] %> - <%= s["end_time"] %></span>
-                <span class="text-gray-500">📝 <%= s["questions"].count %> questions</span>
-                <span class="px-2 py-1 <%= s["status"] == "scheduled" ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700' %> rounded-full text-xs">
-                  <%= s["status"].upcase %>
+                <span class="text-gray-500">📝 
+                  <% 
+                    # Safely get question count - handle both formats
+                    if s["questions"].is_a?(Array)
+                      question_count = s["questions"].count
+                    elsif s["num_questions"]
+                      question_count = s["num_questions"]
+                    else
+                      question_count = 0
+                    end
+                  %>
+                  <%= question_count %> questions
                 </span>
+                <span class="text-gray-500">⏱️ <%= s["duration_minutes"] %> mins</span>
               </div>
             </div>
             <form action="/admin/exams/delete/<%= s["id"] %>" method="post"
-                  onsubmit="return confirm('Delete this exam? This may affect student attempts.')">
+                  onsubmit="return confirm('Delete this exam? This will delete all associated student attempts and results.')">
               <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
                 Delete
               </button>

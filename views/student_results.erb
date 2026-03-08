@@ -6,6 +6,55 @@
     </a>
   </div>
 
+  <!-- Analytics Summary -->
+  <% if @analytics %>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+        <p class="text-blue-100 text-sm">Average Score</p>
+        <p class="text-4xl font-bold mt-2"><%= @analytics["average_score"] %></p>
+      </div>
+      <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+        <p class="text-green-100 text-sm">Total Exams</p>
+        <p class="text-4xl font-bold mt-2"><%= @analytics["total_attempts"] %></p>
+      </div>
+      <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+        <p class="text-purple-100 text-sm">Highest Score</p>
+        <p class="text-4xl font-bold mt-2"><%= @analytics["highest_score"] %></p>
+      </div>
+    </div>
+
+    <!-- Progress Chart -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📈 Your Progress Over Time</h2>
+      <canvas id="progressChart"></canvas>
+    </div>
+
+    <!-- Topic Performance -->
+    <% if @analytics["topic_performance"] && @analytics["topic_performance"].any? %>
+      <div class="bg-white rounded-xl shadow-lg p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">📚 Performance by Topic</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <% @analytics["topic_performance"].each do |topic, data| %>
+            <% total = data[:total].to_i %>
+            <% correct = data[:correct].to_i %>
+            <% topic_percentage = total > 0 ? ((correct.to_f / total) * 100) : 0 %>
+            <div class="bg-gray-50 rounded-lg p-4">
+              <div class="flex justify-between mb-2">
+                <span class="font-semibold text-gray-700"><%= topic.capitalize %></span>
+                <span class="text-sm text-gray-600"><%= correct %>/<%= total %></span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-green-500 rounded-full h-2" 
+                     style="width: <%= topic_percentage %>%"></div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+
+  <!-- Results Table -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
     <div class="bg-gray-50 px-6 py-4 border-b">
       <h2 class="text-xl font-bold text-gray-800">Your Exam History</h2>
@@ -27,23 +76,73 @@
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Score</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Percentage</th>
               <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Date</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
+              <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Feedback</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             <% @attempts.each do |attempt| %>
               <% schedule = @schedules.find { |s| s["id"] == attempt["schedule_id"] } %>
+              <% total_questions = schedule ? (schedule["questions"] || []).count : 0 %>
+
               <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 text-sm text-gray-800"><%= schedule ? schedule["title"] : "Unknown Exam" %></td>
-                <td class="px-6 py-4 text-sm text-gray-800"><%= attempt["score"] %>/<%= schedule ? schedule["questions"].count : "?" %></td>
+                <td class="px-6 py-4 text-sm text-gray-800">
+                  <%= schedule ? schedule["title"] : "Unknown Exam" %>
+                </td>
+
+                <td class="px-6 py-4 text-sm text-gray-800">
+                  <%= attempt["score"] %>/<%= total_questions > 0 ? total_questions : "?" %>
+                </td>
+
                 <td class="px-6 py-4">
-                  <% if attempt["score"] && schedule %>
-                    <% percentage = (attempt["score"].to_f / schedule["questions"].count * 100).round %>
+                  <% if attempt["score"] && schedule && total_questions > 0 %>
+                    <% percentage = ((attempt["score"].to_f / total_questions) * 100).round %>
                     <span class="px-3 py-1 <%= percentage >= 70 ? 'bg-green-100 text-green-800' : (percentage >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') %> rounded-full text-xs font-semibold">
-                      <%= %>%%
+                      <%= percentage %>%
                     </span>
+                  <% else %>
+                    <span class="text-sm text-gray-500">N/A</span>
                   <% end %>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-600"><%= attempt["end_time"] ? attempt["end_time"][0..9] : attempt["start_time"][0..9] %></td>
+
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <%= attempt["end_time"] ? attempt["end_time"][0..9] : attempt["start_time"][0..9] %>
+                </td>
+
+                <td class="px-6 py-4 text-sm">
+                  <%
+                    status_text, status_class =
+                      case attempt["status"]
+                      when "completed"
+                        ["✅ Completed", "bg-green-100 text-green-800"]
+                      when "terminated_for_malpractice"
+                        ["❌ Terminated", "bg-red-100 text-red-800"]
+                      when "removed_for_malpractice"
+                        ["🚫 Removed", "bg-red-100 text-red-800"]
+                      else
+                        [attempt["status"].to_s.gsub('_', ' ').capitalize, "bg-yellow-100 text-yellow-800"]
+                      end
+                  %>
+                  <span class="px-3 py-1 rounded-full text-xs font-semibold <%= status_class %>">
+                    <%= status_text %>
+                  </span>
+                </td>
+
+                <td class="px-6 py-4 text-sm">
+                  <% if attempt["feedback"] %>
+                    <button
+                      onclick='showFeedback(
+                        <%= (attempt.dig("feedback", "message") || "Feedback").to_json %>,
+                        <%= ((attempt.dig("feedback", "weak_areas") || []).join(", ")).to_json %>,
+                        <%= (attempt.dig("feedback", "suggestions") || []).to_json %>
+                      )'
+                      class="text-blue-500 hover:text-blue-700">
+                      📝 View Feedback
+                    </button>
+                  <% else %>
+                    <span class="text-gray-400">No feedback</span>
+                  <% end %>
+                </td>
               </tr>
             <% end %>
           </tbody>
@@ -52,3 +151,88 @@
     <% end %>
   </div>
 </div>
+
+<!-- Feedback Modal -->
+<div id="feedbackModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+  <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-lg bg-white">
+    <div class="mt-3">
+      <h3 class="text-lg font-bold text-gray-900 mb-4" id="feedbackTitle"></h3>
+      <p class="text-sm text-gray-600 mb-4" id="feedbackMessage"></p>
+      <div class="mb-4">
+        <h4 class="font-semibold text-gray-700 mb-2">Suggestions:</h4>
+        <ul class="list-disc list-inside text-sm text-gray-600" id="feedbackSuggestions"></ul>
+      </div>
+      <div class="flex justify-end">
+        <button onclick="closeFeedback()" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/js/charts.js"></script>
+<script>
+  <% if @analytics && @analytics["progress_labels"] && @analytics["progress_data"] %>
+    const progressCanvas = document.getElementById('progressChart');
+    if (progressCanvas) {
+      const progressCtx = progressCanvas.getContext('2d');
+      new Chart(progressCtx, {
+        type: 'line',
+        data: {
+          labels: <%= @analytics["progress_labels"].to_json %>,
+          datasets: [{
+            label: 'Your Score %',
+            data: <%= @analytics["progress_data"].to_json %>,
+            borderColor: '#8b5cf6',
+            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
+        }
+      });
+    }
+  <% end %>
+
+  function showFeedback(title, message, suggestions) {
+    document.getElementById('feedbackTitle').textContent = title;
+    document.getElementById('feedbackMessage').textContent = message || '';
+
+    const suggestionsList = document.getElementById('feedbackSuggestions');
+    suggestionsList.innerHTML = '';
+
+    (suggestions || []).forEach(function(item) {
+      const li = document.createElement('li');
+      li.textContent = item;
+      suggestionsList.appendChild(li);
+    });
+
+    document.getElementById('feedbackModal').classList.remove('hidden');
+  }
+
+  function closeFeedback() {
+    document.getElementById('feedbackModal').classList.add('hidden');
+  }
+
+  window.onclick = function(event) {
+    const modal = document.getElementById('feedbackModal');
+    if (event.target == modal) {
+      closeFeedback();
+    }
+  }
+</script>

@@ -1,63 +1,124 @@
-<div class="max-w-3xl mx-auto">
+<div class="max-w-4xl mx-auto relative">
+  <%= erb :'partials/_question_navigator', locals: {
+    questions: @questions,
+    attempt: @attempt,
+    answered: @answered || [],
+    marked: @marked || [],
+    current_question: 0
+  } %>
+
+  <!-- Proctoring Status -->
+  <div id="proctor-status" class="fixed bottom-4 left-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50">
+    🛡️ Proctoring active
+  </div>
+
+  <!-- Proctoring Warning -->
+  <div id="proctor-warning" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50">
+    ⚠️ Warning
+  </div>
+
+  <!-- Exam Header -->
   <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
     <div class="flex justify-between items-center">
-      <h1 class="text-3xl font-bold text-gray-800"><%= @exam["title"] %></h1>
-      <div class="bg-red-100 px-6 py-3 rounded-lg">
-        <div class="text-sm text-red-600">Time Remaining</div>
+      <div>
+        <h1 class="text-3xl font-bold text-gray-800"><%= @exam["title"] %></h1>
+        <p class="text-gray-600 mt-1"><%= @exam["description"] %></p>
+      </div>
+      <div class="bg-red-50 rounded-lg px-6 py-3 text-center">
+        <div class="text-sm text-red-600 font-semibold">Time Remaining</div>
         <div class="text-3xl font-bold text-red-700 font-mono" id="timer">
-          <%= sprintf("%02d", @exam["duration_minutes"]) %>:00
+          <% initial_seconds = (@remaining_seconds || 0).to_i %>
+          <% initial_minutes = initial_seconds / 60 %>
+          <% initial_secs = initial_seconds % 60 %>
+          <%= sprintf("%02d:%02d", initial_minutes, initial_secs) %>
         </div>
       </div>
     </div>
-    
-    <p class="text-gray-600 mt-2"><%= @exam["description"] %></p>
-    
-    <div class="mt-4 bg-blue-50 p-4 rounded-lg">
-      <p class="text-sm text-blue-800">
-        ⏰ Exam ends at <%= @exam["end_time"] %> · 
-        <%= @questions.count %> questions
-      </p>
+
+    <!-- Progress Bar -->
+    <div class="mt-6">
+      <div class="flex justify-between items-center text-sm text-gray-600 mb-2">
+        <span>Progress</span>
+        <span id="question-counter">1/<%= @questions.length %></span>
+        <div class="text-sm text-gray-600">
+          Answered: <span id="answered-count"><%= (@answered || []).length %></span> |
+          Remaining: <span id="remaining-count"><%= @questions.length - (@answered || []).length %></span>
+        </div>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-3">
+        <div class="bg-green-500 rounded-full h-3 transition-all duration-300 progress-active"
+             id="progress-bar"
+             style="width: <%= 100.0 / @questions.length %>%"></div>
+      </div>
     </div>
   </div>
-  
+
+  <!-- Question Cards -->
   <form id="examForm" action="/student/exam/submit" method="post">
     <input type="hidden" name="attempt_id" value="<%= @attempt["id"] %>">
     <input type="hidden" name="questions" value='<%= @questions.to_json %>'>
-    
+    <input type="hidden" name="proctoring" id="proctoringData" value='{"violations":[],"warnings":[]}'>
+
     <% @questions.each_with_index do |q, index| %>
-      <div class="question-card bg-white rounded-xl shadow-lg p-8 mb-6 <%= 'hidden' if index > 0 %>">
+      <div class="question-card bg-white rounded-xl shadow-lg p-8 mb-6 hover-card <%= 'hidden' if index > 0 %>"
+           data-question="<%= index %>">
         <div class="flex items-start mb-6">
-          <span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3">
+          <span class="bg-green-500 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-3 flex-shrink-0">
             <%= index + 1 %>
           </span>
           <h2 class="text-xl font-semibold text-gray-800"><%= q["text"] %></h2>
         </div>
-        
+
         <div class="space-y-4 ml-11">
           <% q["options"].each do |option| %>
-            <label class="block p-4 rounded-xl border-2 border-gray-200 hover:border-green-500 cursor-pointer">
+            <label class="option-card block p-4 rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 cursor-pointer transition-all duration-200">
               <div class="flex items-center">
-                <input type="radio" name="q<%= index %>" value="<%= option %>" 
-                       class="w-5 h-5 text-green-600" required>
+                <input type="radio"
+                       name="q<%= index %>"
+                       value="<%= option %>"
+                       class="w-5 h-5 text-green-600 focus:ring-green-500"
+                       <%= 'checked' if @attempt["answers"] && @attempt["answers"].any? { |a| a["question_index"] == index && a["answer"] == option } %>>
                 <span class="ml-3 text-lg text-gray-700"><%= option %></span>
               </div>
             </label>
           <% end %>
         </div>
+
+        <div class="mt-6 flex justify-between items-center">
+          <button type="button"
+                  onclick="window.toggleMarkForReviewFromCard(<%= index %>)"
+                  class="text-yellow-600 hover:text-yellow-700 font-semibold text-sm flex items-center gap-1">
+            <span>🔖</span> Mark for Review
+          </button>
+
+          <% if index < @questions.length - 1 %>
+            <button type="button"
+                    onclick="window.showQuestion(<%= index + 1 %>)"
+                    class="text-blue-600 hover:text-blue-700 font-semibold text-sm">
+              Next Question →
+            </button>
+          <% end %>
+        </div>
       </div>
     <% end %>
-    
-    <div class="flex justify-between mt-8">
-      <button type="button" id="prevBtn" 
-              class="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 
-                     transition disabled:opacity-50" disabled>
+
+    <!-- Navigation Buttons -->
+    <div class="flex justify-between mt-8 mb-12">
+      <button type="button"
+              id="prevBtn"
+              class="px-6 py-3 bg-gray-500 text-white rounded-lg font-semibold hover:bg-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled>
         ← Previous
       </button>
-      <button type="button" id="nextBtn" 
+
+      <button type="button"
+              id="nextBtn"
               class="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition">
         Next →
       </button>
-      <button type="submit" id="submitBtn" 
+
+      <button type="submit"
+              id="submitBtn"
               class="px-8 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition hidden">
         Submit Exam
       </button>
@@ -65,65 +126,255 @@
   </form>
 </div>
 
+<script src="/js/proctor.js"></script>
 <script>
-  // Timer
-  let timeLeft = <%= @exam["duration_minutes"] * 60 %>;
-  const timerDisplay = document.getElementById('timer');
-  
-  function updateTimer() {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    
-    if (timeLeft <= 0) {
-      alert('Time is up! Submitting your exam...');
-      document.getElementById('examForm').submit();
-    }
-    timeLeft--;
-  }
-  
-  setInterval(updateTimer, 1000);
-  
-  // Question navigation
-  const questions = document.querySelectorAll('.question-card');
+  window.answeredQuestions = <%= (@answered || []).to_json %>;
+  window.markedQuestions = <%= (@marked || []).to_json %>;
+  window.currentQuestion = 0;
+  window.proctoringViolations = [];
+  window.proctoringWarnings = [];
+
+  window.examAttemptId = '<%= @attempt["id"] %>';
+  const questionCards = document.querySelectorAll('.question-card');
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
   const submitBtn = document.getElementById('submitBtn');
-  let currentQuestion = 0;
-  
-  function showQuestion(index) {
-    questions.forEach((q, i) => {
-      q.classList.toggle('hidden', i !== index);
-    });
-    
-    prevBtn.disabled = index === 0;
-    
-    if (index === questions.length - 1) {
-      nextBtn.classList.add('hidden');
-      submitBtn.classList.remove('hidden');
-    } else {
-      nextBtn.classList.remove('hidden');
-      submitBtn.classList.add('hidden');
-    }
+  const progressBar = document.getElementById('progress-bar');
+  const questionCounter = document.getElementById('question-counter');
+  const examForm = document.getElementById('examForm');
+  const timerEl = document.getElementById('timer');
+
+  function updateAnswerStats() {
+    const answered = window.answeredQuestions.length;
+    const total = questionCards.length;
+    const remaining = total - answered;
+
+    const answeredCountEl = document.getElementById('answered-count');
+    const remainingCountEl = document.getElementById('remaining-count');
+
+    if (answeredCountEl) answeredCountEl.textContent = answered;
+    if (remainingCountEl) remainingCountEl.textContent = remaining;
   }
-  
-  prevBtn.addEventListener('click', () => {
-    if (currentQuestion > 0) {
-      currentQuestion--;
-      showQuestion(currentQuestion);
+
+  function highlightCheckedOptions() {
+    document.querySelectorAll('.option-card').forEach(card => {
+      card.classList.remove('border-green-500', 'bg-green-50');
+      const radio = card.querySelector('input[type="radio"]');
+      if (radio && radio.checked) {
+        card.classList.add('border-green-500', 'bg-green-50');
+      }
+    });
+  }
+
+  function saveAnswer(questionIndex, answerValue) {
+    return fetch('/student/exam/save-answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        attempt_id: examAttemptId,
+        question_index: questionIndex,
+        answer: answerValue
+      })
+    })
+    .then(res => res.json())
+    .catch(err => console.error('Save answer failed:', err));
+  }
+
+  window.showQuestion = function(index) {
+    if (index < 0 || index >= questionCards.length) return;
+
+    questionCards.forEach((card, i) => {
+      if (i === index) card.classList.remove('hidden');
+      else card.classList.add('hidden');
+    });
+
+    window.currentQuestion = index;
+
+    if (prevBtn) prevBtn.disabled = (index === 0);
+
+    if (nextBtn && submitBtn) {
+      if (index === questionCards.length - 1) {
+        nextBtn.classList.add('hidden');
+        submitBtn.classList.remove('hidden');
+      } else {
+        nextBtn.classList.remove('hidden');
+        submitBtn.classList.add('hidden');
+      }
     }
+
+    if (progressBar) {
+      const progress = ((index + 1) / questionCards.length) * 100;
+      progressBar.style.width = progress + '%';
+    }
+
+    if (questionCounter) {
+      questionCounter.textContent = `${index + 1}/${questionCards.length}`;
+    }
+
+    if (typeof window.updateNavigatorHighlight === 'function') {
+      window.updateNavigatorHighlight();
+    }
+
+    window.dispatchEvent(new CustomEvent('currentQuestionChanged', {
+      detail: { index: index }
+    }));
+  };
+
+  window.updateAnswered = function(index, radio) {
+    if (radio.checked && !window.answeredQuestions.includes(index)) {
+      window.answeredQuestions.push(index);
+    }
+
+    updateAnswerStats();
+
+    if (typeof window.updateNavigatorHighlight === 'function') {
+      window.updateNavigatorHighlight();
+    }
+
+    window.dispatchEvent(new CustomEvent('questionAnswered', {
+      detail: { index: index }
+    }));
+  };
+
+  window.toggleMarkForReviewFromCard = function(index) {
+    if (window.markedQuestions.includes(index)) {
+      window.markedQuestions = window.markedQuestions.filter(q => q !== index);
+    } else {
+      window.markedQuestions.push(index);
+    }
+
+    fetch('/student/exam/mark-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        attempt_id: examAttemptId,
+        question_index: index,
+        marked: window.markedQuestions.includes(index)
+      })
+    }).catch(err => console.error('Mark question failed:', err));
+
+    if (typeof window.updateNavigatorHighlight === 'function') {
+      window.updateNavigatorHighlight();
+    }
+  };
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (window.currentQuestion > 0) {
+        window.showQuestion(window.currentQuestion - 1);
+      }
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (window.currentQuestion < questionCards.length - 1) {
+        window.showQuestion(window.currentQuestion + 1);
+      }
+    });
+  }
+
+  document.querySelectorAll('input[type="radio"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      highlightCheckedOptions();
+
+      const match = this.name.match(/q(\d+)/);
+      if (!match) return;
+
+      const qIndex = parseInt(match[1], 10);
+      window.updateAnswered(qIndex, this);
+      saveAnswer(qIndex, this.value);
+    });
   });
-  
-  nextBtn.addEventListener('click', () => {
-    const currentRadio = document.querySelector(`input[name="q${currentQuestion}"]:checked`);
-    if (!currentRadio) {
-      alert('Please answer this question before proceeding.');
-      return;
+
+  (function startTimer() {
+    if (!timerEl) return;
+
+    let totalSeconds = <%= (@remaining_seconds || 0).to_i %>;
+
+    function renderTimer() {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      timerEl.textContent = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
     }
-    
-    if (currentQuestion < questions.length - 1) {
-      currentQuestion++;
-      showQuestion(currentQuestion);
+
+    renderTimer();
+
+    const timerInterval = setInterval(function() {
+      totalSeconds--;
+
+      if (totalSeconds < 0) {
+        clearInterval(timerInterval);
+        window.onbeforeunload = null;
+        alert('⏰ Time is up! Your exam will be submitted automatically.');
+        examForm.submit();
+        return;
+      }
+
+      renderTimer();
+    }, 1000);
+  })();
+
+  window.onbeforeunload = function() {
+    return "Your exam is in progress. Are you sure you want to leave?";
+  };
+
+  examForm.addEventListener('submit', function(e) {
+    const submitBtnClicked = document.activeElement && document.activeElement.id === 'submitBtn';
+    if (submitBtnClicked) {
+      if (!confirm('Are you sure you want to submit your exam?')) {
+        e.preventDefault();
+        return false;
+      }
+    }
+
+    window.onbeforeunload = null;
+
+    if (typeof window.stopProctor === 'function') {
+      window.stopProctor();
+    }
+
+    document.getElementById('proctoringData').value = JSON.stringify({
+      violations: window.proctoringViolations,
+      warnings: window.proctoringWarnings
+    });
+
+    return true;
+  });
+
+  setInterval(function() {
+    const checkedRadios = document.querySelectorAll('input[type="radio"]:checked');
+    checkedRadios.forEach(radio => {
+      const match = radio.name.match(/q(\d+)/);
+      if (!match) return;
+
+      const qIndex = parseInt(match[1], 10);
+      saveAnswer(qIndex, radio.value);
+    });
+  }, 10000);
+
+  setInterval(function() {
+    fetch('/student/exam/check-status?attempt_id=' + examAttemptId)
+      .then(res => res.json())
+      .then(data => {
+        if (data.status === "terminated_for_malpractice") {
+          window.onbeforeunload = null;
+          alert("⚠️ Exam terminated.");
+          window.location.href = "/student/dashboard";
+        }
+      })
+      .catch(err => console.error('Status check failed:', err));
+  }, 10000);
+
+  document.addEventListener('DOMContentLoaded', function() {
+    highlightCheckedOptions();
+    updateAnswerStats();
+    window.showQuestion(0);
+
+    if (typeof window.initProctor === 'function') {
+      window.initProctor(examAttemptId);
     }
   });
 </script>

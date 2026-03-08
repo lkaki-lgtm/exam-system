@@ -1,91 +1,170 @@
 <div class="space-y-8">
-  <!-- Welcome Header with Gradient -->
-  <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white">
-    <h1 class="text-4xl font-bold mb-2">Welcome back, <%= session[:user_name] %>! 👋</h1>
-    <p class="text-blue-100 text-lg">Ready to test your knowledge today?</p>
+  <!-- Welcome Header with Animated Gradient -->
+  <div class="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl shadow-xl p-8 text-white group"
+       data-aos="fade-down">
+    <!-- Animated background orbs -->
+    <div class="absolute inset-0 overflow-hidden">
+      <div class="absolute -top-20 -right-20 w-40 h-40 bg-white/20 rounded-full blur-3xl animate-pulse"></div>
+      <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-white/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+    </div>
+    
+    <div class="relative z-10">
+      <h1 class="text-4xl font-bold mb-2 animate__animated animate__fadeInLeft">
+        Welcome back, <%= session[:user_name] %>! 👋
+      </h1>
+      <p class="text-blue-100 text-lg animate__animated animate__fadeInLeft animate__delay-1s">
+        Ready to test your knowledge today?
+      </p>
+    </div>
+    
+    <!-- Decorative elements -->
+    <div class="absolute right-0 top-0 opacity-10">
+      <i class="fas fa-graduation-cap text-9xl"></i>
+    </div>
   </div>
 
-  <!-- Stats Cards with Colors -->
+  <!-- Stats Cards with Enhanced Animations -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <!-- Active Exams Card -->
-    <div class="bg-gradient-to-br from-green-400 to-green-600 rounded-xl shadow-lg p-6 text-white">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-green-100 text-sm font-medium">Active Exams</p>
-          <p class="text-4xl font-bold mt-2"><%= @active_exams.count %></p>
+    <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+         data-aos="fade-up" data-aos-delay="100">
+      <!-- Animated gradient background -->
+      <div class="absolute inset-0 bg-gradient-to-br from-green-400 to-green-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      <!-- Content -->
+      <div class="relative z-10 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 group-hover:text-green-100 text-sm font-medium uppercase tracking-wide transition-colors duration-500">
+              Active Exams
+            </p>
+            <p class="text-4xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+              <%= @active_exams.count %>
+            </p>
+          </div>
+          <div class="bg-green-100 group-hover:bg-white/30 rounded-full p-4 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+            <span class="text-3xl group-hover:text-white transition-colors duration-500">📝</span>
+          </div>
         </div>
-        <div class="bg-white/30 rounded-full p-4 backdrop-blur-sm">
-          <span class="text-3xl">📝</span>
+        <!-- Animated progress bar -->
+        <div class="mt-4 h-1 w-full bg-green-200 rounded-full overflow-hidden">
+          <div class="h-full bg-green-600 group-hover:bg-white rounded-full transition-all duration-500" 
+               style="width: <%= @active_exams.count > 0 ? '100%' : '0%' %>"></div>
         </div>
       </div>
+      
+      <!-- Animated border -->
+      <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-green-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
     </div>
 
     <!-- Upcoming Exams Card -->
-    <div class="bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-blue-100 text-sm font-medium">Upcoming Exams</p>
-          <p class="text-4xl font-bold mt-2"><%= @upcoming_exams.count %></p>
+    <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+         data-aos="fade-up" data-aos-delay="200">
+      <div class="absolute inset-0 bg-gradient-to-br from-blue-400 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      <div class="relative z-10 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 group-hover:text-blue-100 text-sm font-medium uppercase tracking-wide transition-colors duration-500">
+              Upcoming Exams
+            </p>
+            <p class="text-4xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+              <%= @upcoming_exams.count %>
+            </p>
+          </div>
+          <div class="bg-blue-100 group-hover:bg-white/30 rounded-full p-4 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+            <span class="text-3xl group-hover:text-white transition-colors duration-500">📅</span>
+          </div>
         </div>
-        <div class="bg-white/30 rounded-full p-4 backdrop-blur-sm">
-          <span class="text-3xl">📅</span>
-        </div>
+        <% if @upcoming_exams.any? %>
+          <p class="text-sm text-gray-600 group-hover:text-blue-100 mt-2 transition-colors duration-500">
+            Next: <%= @upcoming_exams.first["scheduled_date"] %>
+          </p>
+        <% end %>
       </div>
+      
+      <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-blue-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
     </div>
 
     <!-- Completed Exams Card -->
-    <div class="bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-purple-100 text-sm font-medium">Completed</p>
-          <p class="text-4xl font-bold mt-2"><%= @my_attempts.count %></p>
+    <div class="group relative bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-2"
+         data-aos="fade-up" data-aos-delay="300">
+      <div class="absolute inset-0 bg-gradient-to-br from-purple-400 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+      
+      <div class="relative z-10 p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-500 group-hover:text-purple-100 text-sm font-medium uppercase tracking-wide transition-colors duration-500">
+              Completed
+            </p>
+            <p class="text-4xl font-bold text-gray-800 group-hover:text-white mt-2 transition-colors duration-500">
+              <%= @my_attempts.count { |a| a["status"] == "completed" } %>
+            </p>
+          </div>
+          <div class="bg-purple-100 group-hover:bg-white/30 rounded-full p-4 transition-all duration-500 group-hover:scale-110 group-hover:rotate-12">
+            <span class="text-3xl group-hover:text-white transition-colors duration-500">🏆</span>
+          </div>
         </div>
-        <div class="bg-white/30 rounded-full p-4 backdrop-blur-sm">
-          <span class="text-3xl">🏆</span>
-        </div>
+        <% if @analytics && @analytics["average_score"] %>
+          <p class="text-sm text-gray-600 group-hover:text-purple-100 mt-2 transition-colors duration-500">
+            Avg Score: <%= @analytics["average_score"] %>%
+          </p>
+        <% end %>
       </div>
+      
+      <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-purple-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
     </div>
   </div>
 
-  <!-- Active Exams Section -->
-  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-    <div class="bg-gradient-to-r from-green-500 to-green-600 px-8 py-5">
+  <!-- Active Exams Section with Animated Cards -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden" data-aos="fade-up">
+    <div class="bg-gradient-to-r from-green-500 to-green-600 px-8 py-5 relative overflow-hidden">
+      <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
       <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-        <span>🔥</span> Active Exams Now
+        <span class="animate-pulse">🔥</span> Active Exams Now
       </h2>
     </div>
     
     <div class="p-6">
       <% if @active_exams.empty? %>
         <div class="text-center py-12 bg-gray-50 rounded-xl">
-          <div class="text-7xl mb-4">😴</div>
+          <div class="text-7xl mb-4 animate-bounce">😴</div>
           <h3 class="text-xl font-bold text-gray-700 mb-2">No Active Exams</h3>
           <p class="text-gray-500">Take a break or check back later!</p>
         </div>
       <% else %>
         <div class="grid gap-4">
-          <% @active_exams.each do |exam| %>
-            <div class="border-l-4 border-green-500 bg-green-50 p-6 rounded-xl hover:shadow-md transition">
-              <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <% @active_exams.each_with_index do |exam, index| %>
+            <div class="group relative border-l-4 border-green-500 bg-green-50 p-6 rounded-xl hover:shadow-xl transition-all duration-500 hover:-translate-y-1 overflow-hidden"
+                 data-aos="fade-up" data-aos-delay="<%= 100 * (index + 1) %>">
+              
+              <!-- Animated background on hover -->
+              <div class="absolute inset-0 bg-gradient-to-r from-green-500 to-green-600 opacity-0 group-hover:opacity-10 transition-opacity duration-500"></div>
+              
+              <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div class="flex-1">
-                  <h3 class="text-xl font-bold text-gray-800"><%= exam["title"] %></h3>
+                  <h3 class="text-xl font-bold text-gray-800 group-hover:text-green-700 transition-colors duration-500">
+                    <%= exam["title"] %>
+                  </h3>
                   <p class="text-gray-600 mt-1"><%= exam["description"] %></p>
                   <div class="flex flex-wrap gap-4 mt-3">
-                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-green-700">
-                      ⏱️ <%= exam["duration_minutes"] %> mins
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-green-700 shadow-sm group-hover:shadow-md transition-all duration-500">
+                      <i class="fas fa-clock animate-spin-slow"></i> <%= exam["duration_minutes"] %> mins
                     </span>
-                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-blue-700">
-                      📝 <%= exam["questions"].count %> questions
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-blue-700 shadow-sm group-hover:shadow-md transition-all duration-500">
+                      <i class="fas fa-question-circle"></i> <%= (exam["questions"] || []).count %> questions
                     </span>
-                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-purple-700">
-                      ⏰ Ends at <%= exam["end_time"] %>
+                    <span class="inline-flex items-center gap-1 text-sm bg-white px-3 py-1 rounded-full text-purple-700 shadow-sm group-hover:shadow-md transition-all duration-500">
+                      <i class="fas fa-hourglass-end"></i> Ends at <%= exam["end_time"] %>
                     </span>
                   </div>
                 </div>
+                
+                <!-- Animated Start Button -->
                 <a href="/student/exam/<%= exam["id"] %>" 
-                   class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-xl font-semibold 
-                          transition transform hover:scale-105 shadow-lg hover:shadow-xl whitespace-nowrap">
-                  Start Exam →
+                   class="group/btn relative bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-xl font-semibold overflow-hidden transition-all duration-500 hover:scale-105 hover:shadow-xl whitespace-nowrap">
+                  <span class="relative z-10">Start Exam →</span>
+                  <div class="absolute inset-0 bg-white transform -skew-x-12 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-700"></div>
                 </a>
               </div>
             </div>
@@ -96,42 +175,53 @@
   </div>
 
   <!-- Upcoming Exams Section -->
-  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-5">
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden" data-aos="fade-up">
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-8 py-5 relative overflow-hidden">
+      <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
       <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-        <span>📅</span> Upcoming Exams
+        <span class="animate-bounce">📅</span> Upcoming Exams
       </h2>
     </div>
     
     <div class="p-6">
       <% if @upcoming_exams.empty? %>
         <div class="text-center py-12 bg-gray-50 rounded-xl">
-          <div class="text-7xl mb-4">📭</div>
+          <div class="text-7xl mb-4 animate-pulse">📭</div>
           <h3 class="text-xl font-bold text-gray-700 mb-2">No Upcoming Exams</h3>
           <p class="text-gray-500">Check back later for new exams!</p>
         </div>
       <% else %>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <% @upcoming_exams.each do |exam| %>
-            <div class="border border-blue-200 bg-blue-50/50 p-5 rounded-xl hover:shadow-md transition">
-              <div class="flex items-start gap-3">
-                <div class="bg-blue-100 rounded-full p-3">
+          <% @upcoming_exams.each_with_index do |exam, index| %>
+            <div class="group relative border border-blue-200 bg-blue-50/50 p-5 rounded-xl hover:shadow-xl transition-all duration-500 hover:-translate-y-1 overflow-hidden"
+                 data-aos="fade-up" data-aos-delay="<%= 100 * (index + 1) %>">
+              
+              <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-blue-600 opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+              
+              <div class="relative z-10 flex items-start gap-3">
+                <div class="bg-blue-100 rounded-full p-3 group-hover:scale-110 group-hover:rotate-12 transition-all duration-500">
                   <span class="text-2xl">📌</span>
                 </div>
                 <div class="flex-1">
-                  <h3 class="font-bold text-gray-800"><%= exam["title"] %></h3>
+                  <h3 class="font-bold text-gray-800 group-hover:text-blue-700 transition-colors duration-500">
+                    <%= exam["title"] %>
+                  </h3>
                   <p class="text-sm text-gray-600 mt-1"><%= exam["description"] %></p>
                   <div class="flex items-center gap-2 mt-2 text-sm">
-                    <span class="text-blue-600">📅 <%= exam["scheduled_date"] %></span>
+                    <span class="text-blue-600">
+                      <i class="far fa-calendar-alt"></i> <%= exam["scheduled_date"] %>
+                    </span>
                     <span class="text-gray-400">|</span>
-                    <span class="text-blue-600">⏰ <%= exam["start_time"] %></span>
+                    <span class="text-blue-600">
+                      <i class="far fa-clock"></i> <%= exam["start_time"] %>
+                    </span>
                   </div>
                   <div class="mt-2 flex gap-2">
                     <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-                      <%= exam["questions"].count %> questions
+                      <i class="far fa-file-alt"></i> <%= (exam["questions"] || []).count %> questions
                     </span>
                     <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs">
-                      <%= exam["duration_minutes"] %> mins
+                      <i class="far fa-hourglass"></i> <%= exam["duration_minutes"] %> mins
                     </span>
                   </div>
                 </div>
@@ -143,56 +233,70 @@
     </div>
   </div>
 
-  <!-- Recent Results Section -->
-  <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-    <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-8 py-5">
+  <!-- Recent Results Section with Animated Charts -->
+  <div class="bg-white rounded-2xl shadow-lg overflow-hidden" data-aos="fade-up">
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-8 py-5 relative overflow-hidden">
+      <div class="absolute inset-0 bg-white/20 transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
       <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-        <span>🏆</span> Your Recent Results
+        <span class="animate-pulse">🏆</span> Your Recent Results
       </h2>
     </div>
     
     <div class="p-6">
       <% if @my_attempts.empty? %>
         <div class="text-center py-12 bg-gray-50 rounded-xl">
-          <div class="text-7xl mb-4">📊</div>
+          <div class="text-7xl mb-4 animate-bounce">📊</div>
           <h3 class="text-xl font-bold text-gray-700 mb-2">No Exams Taken Yet</h3>
           <p class="text-gray-500 mb-6">Start your first exam to see results here!</p>
-          <a href="/student/dashboard#active-exams" class="bg-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-purple-600 transition">
+          <a href="/student/dashboard#active-exams" 
+             class="inline-block px-8 py-3 bg-purple-500 text-white rounded-xl font-semibold hover:bg-purple-600 transition-all duration-500 hover:scale-105 hover:shadow-xl">
             Browse Active Exams
           </a>
         </div>
       <% else %>
         <div class="space-y-4">
-          <% @my_attempts.last(5).each do |attempt| %>
+          <% @my_attempts.last(5).each_with_index do |attempt, index| %>
             <% exam = @schedules.find { |s| s["id"] == attempt["schedule_id"] } %>
             <% if exam %>
-              <% percentage = (attempt["score"].to_f / exam["questions"].count * 100).round %>
-              <div class="bg-gray-50 rounded-xl p-5 hover:shadow-md transition">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <% total_questions = (exam["questions"] || []).count %>
+              <% percentage = total_questions > 0 ? ((attempt["score"].to_f / total_questions) * 100).round : 0 %>
+              <div class="group relative bg-gray-50 rounded-xl p-5 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 overflow-hidden"
+                   data-aos="fade-up" data-aos-delay="<%= 100 * (index + 1) %>">
+                
+                <div class="absolute inset-0 bg-gradient-to-r from-purple-500 to-purple-600 opacity-0 group-hover:opacity-5 transition-opacity duration-500"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
-                    <h3 class="font-bold text-gray-800"><%= exam["title"] %></h3>
+                    <h3 class="font-bold text-gray-800 group-hover:text-purple-700 transition-colors duration-500">
+                      <%= exam["title"] %>
+                    </h3>
                     <p class="text-sm text-gray-600 mt-1">
+                      <i class="far fa-calendar-alt"></i> 
                       <%= attempt["end_time"] ? attempt["end_time"][0..10] : attempt["start_time"][0..10] %>
                     </p>
                   </div>
+                  
                   <div class="flex items-center gap-4">
-                    <!-- Score Circle -->
-                    <div class="relative w-16 h-16">
+                    <!-- Animated Score Circle -->
+                    <div class="relative w-16 h-16 group/circle">
                       <svg class="w-16 h-16 transform -rotate-90">
                         <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="none"
                                 class="text-gray-200"/>
                         <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="none"
                                stroke-dasharray="<%= 2 * Math::PI * 28 %>"
                                stroke-dashoffset="<%= 2 * Math::PI * 28 * (1 - percentage/100.0) %>"
-                               class="<%= percentage >= 70 ? 'text-green-500' : (percentage >= 40 ? 'text-yellow-500' : 'text-red-500') %>"/>
+                               class="<%= percentage >= 70 ? 'text-green-500' : (percentage >= 40 ? 'text-yellow-500' : 'text-red-500') %> 
+                                      transition-all duration-1000 group-hover/circle:stroke-dashoffset-0"/>
                       </svg>
                       <div class="absolute inset-0 flex items-center justify-center">
-                        <span class="text-sm font-bold"><%= %>%</span>
+                        <span class="text-sm font-bold group-hover:scale-110 transition-transform duration-500"><%= percentage %>%</span>
                       </div>
                     </div>
+                    
                     <div class="text-right">
-                      <span class="text-2xl font-bold <%= percentage >= 70 ? 'text-green-500' : (percentage >= 40 ? 'text-yellow-500' : 'text-red-500') %>">
-                        <%= attempt["score"] %>/<%= exam["questions"].count %>
+                      <span class="text-2xl font-bold <%= percentage >= 70 ? 'text-green-500' : (percentage >= 40 ? 'text-yellow-500' : 'text-red-500') %> 
+                                   group-hover:scale-110 inline-block transition-transform duration-500">
+                        <%= attempt["score"] %>/<%= total_questions %>
                       </span>
                       <div class="text-sm text-gray-500">Score</div>
                     </div>
@@ -204,8 +308,10 @@
           
           <% if @my_attempts.count > 5 %>
             <div class="text-center mt-4">
-              <a href="/student/results" class="text-purple-500 hover:text-purple-600 font-semibold">
-                View All Results →
+              <a href="/student/results" 
+                 class="text-purple-500 hover:text-purple-600 font-semibold inline-flex items-center gap-2 group">
+                View All Results 
+                <i class="fas fa-arrow-right group-hover:translate-x-2 transition-transform duration-300"></i>
               </a>
             </div>
           <% end %>
@@ -214,3 +320,19 @@
     </div>
   </div>
 </div>
+
+<!-- Add these styles for animations -->
+<style>
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+  
+  .animation-delay-1000 {
+    animation-delay: 1s;
+  }
+</style>

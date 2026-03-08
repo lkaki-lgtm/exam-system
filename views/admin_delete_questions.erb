@@ -6,16 +6,32 @@
     </a>
   </div>
 
+  <!-- Warning Banner -->
+  <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <span class="text-2xl">⚠️</span>
+      </div>
+      <div class="ml-3">
+        <p class="text-sm text-yellow-700">
+          <strong>Warning:</strong> Deleting questions will affect all scheduled exams that use them. 
+          Consider archiving instead of deleting.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <!-- Danger Zone - Delete All -->
   <div class="bg-red-50 border-2 border-red-200 rounded-xl p-6">
     <h2 class="text-2xl font-bold text-red-800 mb-4">⚠️ Danger Zone</h2>
     <div class="flex items-center justify-between">
       <div>
         <p class="font-semibold text-red-700">Delete ALL Questions</p>
-        <p class="text-sm text-red-600">This action cannot be undone. All questions will be permanently removed.</p>
+        <p class="text-sm text-red-600">This action cannot be undone. All questions will be permanently removed from the system.</p>
+        <p class="text-xs text-red-500 mt-1">Affected exams: <%= @questions.count %> questions will be deleted</p>
       </div>
       <form action="/admin/questions/delete-all" method="post" 
-            onsubmit="return confirm('⚠️ Are you ABSOLUTELY sure? This will delete ALL questions!')">
+            onsubmit="return confirm('⚠️ Are you ABSOLUTELY sure? This will delete ALL <%= @questions.count %> questions!')">
         <button type="submit" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition">
           Delete All
         </button>
@@ -25,8 +41,9 @@
 
   <!-- Individual Questions -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-    <div class="bg-gray-50 px-6 py-4 border-b">
+    <div class="bg-gray-50 px-6 py-4 border-b flex justify-between items-center">
       <h2 class="text-xl font-bold text-gray-800">Select Questions to Delete</h2>
+      <span class="text-sm text-gray-500"><%= @questions.count %> questions total</span>
     </div>
 
     <% if @questions.empty? %>
@@ -38,17 +55,27 @@
         <% @questions.each_with_index do |q, i| %>
           <div class="p-6 hover:bg-gray-50 flex items-center justify-between">
             <div class="flex-1">
-              <span class="text-sm text-gray-500">#<%= i + 1 %></span>
-              <p class="font-medium text-gray-800 mt-1"><%= q["text"] %></p>
-              <p class="text-sm text-gray-600 mt-1">
-                Options: <%= q["options"].join(" • ") %>
+              <div class="flex items-center gap-3 mb-2">
+                <span class="bg-gray-200 text-gray-700 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                  <%= i + 1 %>
+                </span>
+                <span class="px-2 py-1 rounded-full text-xs font-semibold
+                  <%= q["difficulty"] == 'easy' ? 'bg-green-100 text-green-800' : 
+                     (q["difficulty"] == 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800') %>">
+                  <%= q["difficulty"]&.capitalize || "Medium" %>
+                </span>
+                <span class="text-xs text-gray-500">Topic: <%= q["topic"] || "General" %></span>
+              </div>
+              <p class="font-medium text-gray-800"><%= q["text"] %></p>
+              <p class="text-sm text-gray-600 mt-2">
+                Options: <%= q["options"].map { |opt| "• #{opt}" }.join(" ") %>
               </p>
               <p class="text-xs text-gray-500 mt-1">
                 Correct: <span class="text-green-600 font-semibold"><%= q["correct"] %></span>
               </p>
             </div>
             <form action="/admin/questions/delete/<%= q["id"] %>" method="post"
-                  onsubmit="return confirm('Delete this question?')">
+                  onsubmit="return confirm('Delete this question? This may affect scheduled exams.')">
               <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
                 Delete
               </button>

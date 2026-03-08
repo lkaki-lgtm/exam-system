@@ -1,16 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Online Examination System</title>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TestByte - Online Examination System</title>
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js for analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- TensorFlow for proctoring -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
+
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+  <!-- AOS (Animate on Scroll) -->
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/css/custom.css">
+
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
   </style>
 </head>
-<body class="bg-gray-50">
-  <!-- NAVIGATION BAR - SIMPLE ORIGINAL STYLE -->
+
+<body class="bg-gray-50 min-h-screen flex flex-col">
+  <!-- NAVIGATION BAR -->
   <nav class="bg-white shadow-lg border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
@@ -20,8 +48,8 @@
             📚 TestByte
           </a>
         </div>
-        
-        <!-- Desktop Navigation - SIMPLE ORIGINAL VERSION -->
+
+        <!-- Desktop Navigation -->
         <div class="hidden md:block">
           <div class="ml-10 flex items-baseline space-x-4">
             <% if session[:user_type] == "admin" %>
@@ -31,9 +59,20 @@
               <a href="/admin/dashboard" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Dashboard</a>
               <a href="/admin/questions" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Questions</a>
               <a href="/admin/create-exam" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Schedule Exam</a>
+              <a href="/admin/teachers" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Teachers</a>
               <a href="/admin/students" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Students</a>
               <a href="/admin/results" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Results</a>
               <a href="/logout" class="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-medium transition">Logout</a>
+
+            <% elsif session[:user_type] == "teacher" %>
+              <span class="text-gray-700 px-3 py-2 text-sm font-medium">
+                Hello, <span class="font-bold text-green-600"><%= session[:user_name] %></span> (Teacher)
+              </span>
+              <a href="/teacher/dashboard" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Dashboard</a>
+              <a href="/teacher/results" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Results</a>
+              <a href="/teacher/students" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Students</a>
+              <a href="/logout" class="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-medium transition">Logout</a>
+
             <% elsif session[:user_type] == "student" %>
               <span class="text-gray-700 px-3 py-2 text-sm font-medium">
                 Hello, <span class="font-bold text-green-600"><%= session[:user_name] %></span> (Student)
@@ -41,6 +80,7 @@
               <a href="/student/dashboard" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Dashboard</a>
               <a href="/student/results" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">My Results</a>
               <a href="/logout" class="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-medium transition">Logout</a>
+
             <% else %>
               <a href="/" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Home</a>
               <a href="/login" class="text-gray-700 hover:text-green-600 px-3 py-2 text-sm font-medium transition">Login</a>
@@ -51,7 +91,7 @@
 
         <!-- Mobile menu button -->
         <div class="md:hidden">
-          <button type="button" class="text-gray-700 hover:text-green-600 focus:outline-none" id="menu-btn">
+          <button type="button" class="text-gray-700 hover:text-green-600 focus:outline-none" id="menu-btn" aria-label="Toggle mobile menu">
             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
             </svg>
@@ -61,18 +101,29 @@
     </div>
 
     <!-- Mobile menu -->
-    <div class="hidden md:hidden" id="mobile-menu">
+    <div class="hidden md:hidden border-t border-gray-200" id="mobile-menu">
       <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
         <% if session[:user_type] == "admin" %>
           <div class="text-gray-700 px-3 py-2 text-base font-medium">
             Hello, <span class="font-bold text-green-600"><%= session[:user_name] %></span> (Admin)
           </div>
           <a href="/admin/dashboard" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Dashboard</a>
-          <a href="/admin/questions" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Add Qns</a>
+          <a href="/admin/questions" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Questions</a>
           <a href="/admin/create-exam" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Schedule Exam</a>
+          <a href="/admin/teachers" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Teachers</a>
           <a href="/admin/students" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Students</a>
           <a href="/admin/results" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Results</a>
           <a href="/logout" class="block bg-red-500 text-white hover:bg-red-600 px-3 py-2 text-base font-medium rounded">Logout</a>
+
+        <% elsif session[:user_type] == "teacher" %>
+          <div class="text-gray-700 px-3 py-2 text-base font-medium">
+            Hello, <span class="font-bold text-green-600"><%= session[:user_name] %></span> (Teacher)
+          </div>
+          <a href="/teacher/dashboard" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Dashboard</a>
+          <a href="/teacher/results" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Results</a>
+          <a href="/teacher/students" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Students</a>
+          <a href="/logout" class="block bg-red-500 text-white hover:bg-red-600 px-3 py-2 text-base font-medium rounded">Logout</a>
+
         <% elsif session[:user_type] == "student" %>
           <div class="text-gray-700 px-3 py-2 text-base font-medium">
             Hello, <span class="font-bold text-green-600"><%= session[:user_name] %></span> (Student)
@@ -80,6 +131,7 @@
           <a href="/student/dashboard" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Dashboard</a>
           <a href="/student/results" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">My Results</a>
           <a href="/logout" class="block bg-red-500 text-white hover:bg-red-600 px-3 py-2 text-base font-medium rounded">Logout</a>
+
         <% else %>
           <a href="/" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Home</a>
           <a href="/login" class="block text-gray-700 hover:text-green-600 px-3 py-2 text-base font-medium">Login</a>
@@ -90,7 +142,7 @@
   </nav>
 
   <!-- MAIN CONTENT -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
     <%= yield %>
   </main>
 
@@ -103,12 +155,24 @@
     </div>
   </footer>
 
+  <!-- AOS Animation Library -->
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
   <script>
     // Mobile menu toggle
     document.getElementById('menu-btn')?.addEventListener('click', function() {
       const menu = document.getElementById('mobile-menu');
       menu.classList.toggle('hidden');
     });
+
+    // Initialize AOS
+    if (typeof AOS !== 'undefined') {
+      AOS.init({
+        duration: 1000,
+        once: true,
+        offset: 100
+      });
+    }
   </script>
 </body>
 </html>

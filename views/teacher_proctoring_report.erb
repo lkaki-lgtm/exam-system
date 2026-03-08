@@ -1,0 +1,111 @@
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">📋 Proctoring Report</h1>
+    <div class="flex gap-4">
+      <a href="/teacher/exam/<%= @exam["id"] %>/control" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition">
+        ← Back to Exam Control
+      </a>
+    </div>
+  </div>
+
+  <!-- Exam Info -->
+  <div class="bg-gradient-to-r from-red-600 to-red-800 rounded-xl shadow-lg p-6 text-white">
+    <h2 class="text-2xl font-bold"><%= @exam["title"] %></h2>
+    <p class="text-red-100"><%= @exam["description"] %></p>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <p class="text-gray-500 text-sm">Total Students</p>
+      <p class="text-3xl font-bold text-gray-800"><%= @report["total_students"] %></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <p class="text-gray-500 text-sm">Students with Violations</p>
+      <p class="text-3xl font-bold text-red-600"><%= @report["students_with_violations"] %></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <p class="text-gray-500 text-sm">Total Violations</p>
+      <p class="text-3xl font-bold text-orange-600"><%= @report["total_violations"] %></p>
+    </div>
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <p class="text-gray-500 text-sm">Clean Students</p>
+      <p class="text-3xl font-bold text-green-600"><%= @report["total_students"] - @report["students_with_violations"] %></p>
+    </div>
+  </div>
+
+  <!-- Violation Types -->
+  <% if @report["violation_types"] && @report["violation_types"].any? %>
+    <div class="bg-white rounded-xl shadow-lg p-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">📊 Violation Types</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <% @report["violation_types"].each do |type, count| %>
+          <div class="bg-gray-50 rounded-lg p-4 text-center">
+            <p class="text-2xl font-bold text-red-600"><%= count %></p>
+            <p class="text-sm text-gray-600"><%= type.to_s.gsub('_', ' ').split.map(&:capitalize).join(' ') %></p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Student Reports -->
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="bg-gray-50 px-6 py-4 border-b">
+      <h2 class="text-xl font-bold text-gray-800">👥 Student Violation Reports</h2>
+    </div>
+
+    <% if @report["student_reports"].empty? %>
+      <div class="text-center py-12">
+        <p class="text-gray-500">No violations reported for this exam.</p>
+      </div>
+    <% else %>
+      <div class="divide-y divide-gray-200">
+        <% @report["student_reports"].each do |student| %>
+          <div class="p-6 hover:bg-gray-50">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3 class="font-bold text-gray-800"><%= student["student_name"] %></h3>
+                <p class="text-sm text-gray-600">Reg: <%= student["student_reg"] %></p>
+              </div>
+              <!-- In the student reports section, update the status display -->
+<div class="text-right">
+  <span class="px-3 py-1 
+    <%= student["status"] == 'terminated_for_malpractice' ? 'bg-red-100 text-red-800' : 
+       (student["status"] == 'completed' ? 'bg-green-100 text-green-800' : 
+       'bg-yellow-100 text-yellow-800') %> 
+    rounded-full text-xs font-semibold">
+    <%= student["status"] == 'terminated_for_malpractice' ? '❌ TERMINATED' : 
+         student["status"].upcase %>
+  </span>
+  <% if student["status"] == 'terminated_for_malpractice' %>
+    <p class="text-xs text-red-600 mt-1">
+      <%= student["violations"].last&.dig("details", "message") || "Multiple violations" %>
+    </p>
+  <% end %>
+</div>
+              
+            <!-- Violation List -->
+            <div class="space-y-2 mt-4">
+              <% student["violations"].each do |v| %>
+                <div class="bg-red-50 p-3 rounded-lg text-sm">
+                  <div class="flex justify-between">
+                    <span class="font-semibold text-red-700">
+                      <%= v["type"].to_s.gsub('_', ' ').split.map(&:capitalize).join(' ') %>
+                    </span>
+                    <span class="text-xs text-gray-500">
+                      <%= Time.parse(v["timestamp"]).strftime("%H:%M:%S") rescue v["timestamp"] %>
+                    </span>
+                  </div>
+                  <% if v["details"] && v["details"]["message"] %>
+                    <p class="text-xs text-gray-600 mt-1"><%= v["details"]["message"] %></p>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

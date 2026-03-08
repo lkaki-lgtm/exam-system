@@ -1,0 +1,222 @@
+<%# views/partials/_question_navigator.erb - Floating question palette %>
+<div class="question-palette hidden md:block">
+  <!-- Header -->
+  <div class="bg-gradient-to-r from-blue-600 to-purple-600 -mt-4 -mx-4 mb-4 px-4 py-3 rounded-t-xl text-white">
+    <h3 class="font-bold flex items-center gap-2">
+      <span>📋</span> Question Navigator
+    </h3>
+    <p class="text-xs text-blue-100 mt-1">
+      <span id="navigator-answered-count"><%= (@answered || []).length %></span>/<%= @questions.count %> answered
+    </p>
+  </div>
+
+  <!-- Question Grid -->
+  <div class="max-h-96 overflow-y-auto pr-2">
+    <div class="grid grid-cols-4 gap-2">
+      <% @questions.each_with_index do |q, i| %>
+        <button type="button"
+                onclick="jumpToQuestion(<%= i %>)"
+                id="nav-dot-<%= i %>"
+                class="question-dot w-full aspect-square rounded-lg text-sm font-medium transition-all duration-200">
+          <%= i + 1 %>
+        </button>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="border-t border-gray-200 mt-4 pt-3">
+    <div class="flex items-center justify-between text-xs">
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 bg-green-500 rounded"></div>
+        <span class="text-gray-600">Answered</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 bg-yellow-400 rounded"></div>
+        <span class="text-gray-600">Marked</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <div class="w-3 h-3 bg-blue-500 rounded ring-2 ring-blue-300"></div>
+        <span class="text-gray-600">Current</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mark for Review Button -->
+  <div class="border-t border-gray-200 mt-4 pt-3">
+    <button type="button"
+            onclick="toggleMarkForReview()"
+            class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg transition flex items-center justify-center gap-2">
+      <span>🔖</span> Mark Current for Review
+    </button>
+  </div>
+</div>
+
+<!-- Mobile Version (Collapsible) -->
+<div class="md:hidden fixed bottom-4 right-4 z-50">
+  <button type="button"
+          onclick="toggleMobileNavigator()"
+          class="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition">
+    <span class="text-2xl">📋</span>
+  </button>
+  
+  <div id="mobile-navigator" class="hidden fixed bottom-20 right-4 w-64 bg-white rounded-xl shadow-2xl border border-gray-200 p-4">
+    <div class="flex justify-between items-center mb-3">
+      <h3 class="font-bold">Question Navigator</h3>
+      <button type="button" onclick="toggleMobileNavigator()" class="text-gray-500">✕</button>
+    </div>
+
+    <p class="text-xs text-gray-500 mb-3">
+      <span id="mobile-navigator-answered-count"><%= (@answered || []).length %></span>/<%= @questions.count %> answered
+    </p>
+
+    <div class="grid grid-cols-4 gap-2 mb-3">
+      <% @questions.each_with_index do |q, i| %>
+        <button type="button"
+                onclick="jumpToQuestion(<%= i %>); toggleMobileNavigator()"
+                id="mobile-nav-dot-<%= i %>"
+                class="question-dot w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200">
+          <%= i + 1 %>
+        </button>
+      <% end %>
+    </div>
+
+    <button type="button"
+            onclick="toggleMarkForReview(); toggleMobileNavigator()"
+            class="w-full bg-yellow-400 hover:bg-yellow-500 text-gray-800 font-semibold py-2 px-4 rounded-lg text-sm">
+      🔖 Mark for Review
+    </button>
+  </div>
+</div>
+
+<script>
+  const totalQuestions = <%= @questions.count %>;
+
+  function getAnsweredQuestions() {
+    return window.answeredQuestions || [];
+  }
+
+  function getMarkedQuestions() {
+    return window.markedQuestions || [];
+  }
+
+  function getCurrentQuestion() {
+    return window.currentQuestion || 0;
+  }
+
+  function updateAnsweredCount() {
+    const answered = getAnsweredQuestions().length;
+
+    const countEl = document.getElementById('navigator-answered-count');
+    const mobileCountEl = document.getElementById('mobile-navigator-answered-count');
+
+    if (countEl) countEl.textContent = answered;
+    if (mobileCountEl) mobileCountEl.textContent = answered;
+  }
+
+  function jumpToQuestion(index) {
+    if (typeof window.showQuestion === 'function') {
+      window.showQuestion(index);
+    }
+    updateNavigatorHighlight();
+  }
+
+  function toggleMarkForReview() {
+    const currentQuestion = getCurrentQuestion();
+    let markedQuestions = getMarkedQuestions();
+
+    if (markedQuestions.includes(currentQuestion)) {
+      markedQuestions = markedQuestions.filter(q => q !== currentQuestion);
+    } else {
+      markedQuestions = [...markedQuestions, currentQuestion];
+    }
+
+    window.markedQuestions = markedQuestions;
+
+    fetch('/student/exam/mark-question', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        attempt_id: attemptId,
+        question_index: currentQuestion,
+        marked: markedQuestions.includes(currentQuestion)
+      })
+    }).catch(err => console.error('Failed to mark question:', err));
+
+    updateNavigatorHighlight();
+  }
+
+  function applyDotClasses(dot, isAnswered, isMarked, isCurrent) {
+    dot.className = 'question-dot w-full aspect-square rounded-lg text-sm font-medium transition-all duration-200';
+
+    if (isAnswered) {
+      dot.classList.add('bg-green-500', 'text-white');
+    } else if (isMarked) {
+      dot.classList.add('bg-yellow-400', 'text-white');
+    } else {
+      dot.classList.add('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
+    }
+
+    if (isCurrent) {
+      dot.classList.add('ring-2', 'ring-blue-500', 'scale-110');
+    }
+  }
+
+  window.updateNavigatorHighlight = function() {
+    const answeredQuestions = getAnsweredQuestions();
+    const markedQuestions = getMarkedQuestions();
+    const currentQuestion = getCurrentQuestion();
+
+    for (let i = 0; i < totalQuestions; i++) {
+      const desktopDot = document.getElementById(`nav-dot-${i}`);
+      const mobileDot = document.getElementById(`mobile-nav-dot-${i}`);
+
+      const isAnswered = answeredQuestions.includes(i);
+      const isMarked = markedQuestions.includes(i);
+      const isCurrent = (i === currentQuestion);
+
+      if (desktopDot) {
+        applyDotClasses(desktopDot, isAnswered, isMarked, isCurrent);
+      }
+
+      if (mobileDot) {
+        mobileDot.className = 'question-dot w-10 h-10 rounded-lg text-sm font-medium transition-all duration-200';
+        if (isAnswered) {
+          mobileDot.classList.add('bg-green-500', 'text-white');
+        } else if (isMarked) {
+          mobileDot.classList.add('bg-yellow-400', 'text-white');
+        } else {
+          mobileDot.classList.add('bg-gray-200', 'text-gray-600', 'hover:bg-gray-300');
+        }
+
+        if (isCurrent) {
+          mobileDot.classList.add('ring-2', 'ring-blue-500', 'scale-110');
+        }
+      }
+    }
+
+    updateAnsweredCount();
+  }
+
+  function toggleMobileNavigator() {
+    const nav = document.getElementById('mobile-navigator');
+    if (nav) nav.classList.toggle('hidden');
+  }
+
+  window.addEventListener('questionAnswered', function() {
+    updateNavigatorHighlight();
+  });
+
+  window.addEventListener('currentQuestionChanged', function(e) {
+    window.currentQuestion = e.detail.index;
+    updateNavigatorHighlight();
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    updateNavigatorHighlight();
+  });
+
+  window.jumpToQuestion = jumpToQuestion;
+  window.toggleMarkForReview = toggleMarkForReview;
+  window.toggleMobileNavigator = toggleMobileNavigator;
+</script>

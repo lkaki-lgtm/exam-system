@@ -1,0 +1,107 @@
+<div class="space-y-8">
+  <div class="flex justify-between items-center">
+    <h1 class="text-4xl font-bold text-gray-800">👥 Assign Students to Exam</h1>
+    <a href="/teacher/dashboard" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition">
+      ← Back
+    </a>
+  </div>
+
+  <!-- Exam Info -->
+  <div class="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+    <h2 class="text-2xl font-bold"><%= @exam["title"] %></h2>
+    <p class="text-blue-100"><%= @exam["description"] %></p>
+    <div class="flex gap-4 mt-4">
+      <span>📅 <%= @exam["scheduled_date"] %></span>
+      <span>⏰ <%= @exam["start_time"] %> - <%= @exam["end_time"] %></span>
+      <span>📝 <%= @exam["questions"].count %> questions</span>
+    </div>
+  </div>
+
+  <form action="/teacher/exam/<%= @exam["id"] %>/assign-students" method="post">
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+      <div class="bg-gray-50 px-6 py-4 border-b">
+        <h2 class="text-xl font-bold text-gray-800">Select Students</h2>
+      </div>
+
+      <div class="p-6">
+        <div class="mb-4">
+          <input type="text" id="searchStudents" placeholder="Search students..." 
+                 class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 transition">
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead class="bg-gray-100">
+              <tr>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">
+                  <input type="checkbox" id="selectAll" onclick="toggleAll(this)">
+                </th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Name</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Email</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Registration No.</th>
+                <th class="px-6 py-3 text-left text-sm font-semibold text-gray-600">Status</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200" id="studentTable">
+              <% @available_students.each do |student| %>
+                <% assigned = @assigned_students.include?(student["id"]) %>
+                <tr class="hover:bg-gray-50 student-row">
+                  <td class="px-6 py-4">
+                    <input type="checkbox" name="student_ids[]" value="<%= student["id"] %>" 
+                           <%= "checked" if assigned %>
+                           class="student-checkbox w-5 h-5 text-blue-600">
+                  </td>
+                  <td class="px-6 py-4 text-sm text-gray-800"><%= student["name"] %></td>
+                  <td class="px-6 py-4 text-sm text-gray-600"><%= student["email"] %></td>
+                  <td class="px-6 py-4 text-sm text-gray-600"><%= student["reg_number"] %></td>
+                  <td class="px-6 py-4">
+                    <% if assigned %>
+                      <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">Assigned</span>
+                    <% else %>
+                      <span class="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">Not Assigned</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-6 flex justify-end gap-4">
+          <button type="submit" 
+                  class="bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 transition">
+            Save Assignments
+          </button>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Select/Deselect all checkboxes
+  function toggleAll(source) {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(checkbox => checkbox.checked = source.checked);
+  }
+
+  // Search functionality
+  document.getElementById('searchStudents').addEventListener('keyup', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('.student-row');
+    
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+  });
+
+  // Update select all checkbox based on individual selections
+  document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      const total = document.querySelectorAll('.student-checkbox').length;
+      const checked = document.querySelectorAll('.student-checkbox:checked').length;
+      document.getElementById('selectAll').checked = total === checked;
+    });
+  });
+</script>
