@@ -1317,3 +1317,5 @@ end
 def get_student_results(student_id)
   stringify_array(DB[:results].where(student_id: student_id).all)
 end
+
+end
