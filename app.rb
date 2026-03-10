@@ -1,6 +1,8 @@
 require 'sinatra'
 require 'dotenv/load'
 require_relative 'database'
+require_relative 'database_connection'
+require_relative 'db_helper'
 require 'json'
 require 'date'
 require 'time'
