@@ -399,20 +399,21 @@ end
   # PROCTORING METHODS
   # =========================
   def log_proctoring_violation(attempt_id, violation_type, details = {})
-    DB[:violations].insert(
-      attempt_id: attempt_id,
-      violation_type: violation_type,
-      details_json: details.to_json,
-      created_at: Time.now
-    )
+  DB[:violations].insert(
+    attempt_id: attempt_id,
+    violation_type: violation_type,
+    details_json: details.to_json,
+    created_at: Time.now
+  )
 
-    violation_count = DB[:violations].where(attempt_id: attempt_id).count
+  violation_count = DB[:violations].where(attempt_id: attempt_id).count
 
-    DB[:attempts].where(id: attempt_id).update(
-      violation_count: violation_count,
-      updated_at: Time.now
-    )
+  DB[:attempts].where(id: attempt_id).update(
+    violation_count: violation_count,
+    updated_at: Time.now
+  )
 
+  if violation_count >= 3
     DB[:attempts].where(id: attempt_id).update(
       status: "terminated_for_malpractice",
       termination_reason: "Multiple proctoring violations",
@@ -421,16 +422,16 @@ end
       score: 0,
       updated_at: Time.now
     )
-      puts "⚠️ Exam TERMINATED for attempt #{attempt_id} due to multiple violations"
-    end
-
-    {
-      "attempt_id" => attempt_id,
-      "type" => violation_type,
-      "details" => details,
-      "timestamp" => Time.now.to_s
-    }
+    puts "⚠️ Exam TERMINATED for attempt #{attempt_id} due to multiple violations"
   end
+
+  {
+    "attempt_id" => attempt_id,
+    "type" => violation_type,
+    "details" => details,
+    "timestamp" => Time.now.to_s
+  }
+end
 
   def get_proctoring_report(exam_id)
     exam = get_schedule(exam_id)
