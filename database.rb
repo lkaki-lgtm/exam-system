@@ -231,7 +231,7 @@ class ExamDatabase
   end
 
   def get_all_teachers
-    stringify_array(DB[:users].where(role: "teacher").all)
+    stringify_array(DB[:users].where(role: "teacher").all).compact
   end
 
   def get_student(student_id)
