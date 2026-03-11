@@ -11,13 +11,12 @@
     </div>
   </div>
 
-  <!-- Teachers List -->
   <div class="bg-white rounded-xl shadow-lg overflow-hidden">
     <div class="bg-gray-50 px-6 py-4 border-b">
       <h2 class="text-xl font-bold text-gray-800">Registered Teachers</h2>
     </div>
 
-    <% if @teachers.empty? %>
+    <% if @teachers.nil? || @teachers.empty? %>
       <div class="text-center py-12">
         <p class="text-gray-500">No teachers registered yet.</p>
       </div>
@@ -39,12 +38,14 @@
               <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 text-sm text-gray-800"><%= teacher["name"] || "N/A" %></td>
                 <td class="px-6 py-4 text-sm text-gray-600"><%= teacher["email"] || "N/A" %></td>
-                <td class="px-6 py-4 text-sm text-gray-600"><%= teacher["created_at"]&.[](0..9) || "N/A" %></td>
                 <td class="px-6 py-4 text-sm text-gray-600">
-                  <%= @schedules&.select { |s| s["assigned_teacher_id"] == teacher["id"] }&.count || 0 %>
+                  <%= teacher["created_at"] ? teacher["created_at"].to_s[0..9] : "N/A" %>
                 </td>
                 <td class="px-6 py-4 text-sm text-gray-600">
-                  <%= @teacher_students&.[](teacher["id"])&.count || 0 %>
+                  <%= (@schedules || []).count { |s| s["assigned_teacher_id"].to_s == teacher["id"].to_s } %>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  <%= (@teacher_students || {})[teacher["id"]] ? (@teacher_students || {})[teacher["id"]].count : 0 %>
                 </td>
               </tr>
             <% end %>

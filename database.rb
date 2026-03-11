@@ -39,8 +39,7 @@ class ExamDatabase
       "correct" => row[:correct_answer],
       "difficulty" => row[:difficulty] || "medium",
       "topic" => row[:topic] || "general",
-      "created_at" => row[:created_at]&.to_s,
-      "updated_at" => row[:updated_at]&.to_s
+      "created_at" => row[:created_at]&.to_s
     }
   end
 
@@ -494,21 +493,20 @@ end
   # QUESTION MANAGEMENT
   # =========================
   def add_question(question_text, option1, option2, option3, option4, correct_answer, difficulty = "medium", topic = "general")
-    now = Time.now
-    DB[:questions].insert(
-      text: question_text,
-      option1: option1,
-      option2: option2,
-      option3: option3,
-      option4: option4,
-      correct_answer: correct_answer,
-      difficulty: difficulty,
-      topic: topic,
-      created_at: now,
-      updated_at: now
-    )
-    true
-  end
+  now = Time.now
+  DB[:questions].insert(
+    text: question_text,
+    option1: option1,
+    option2: option2,
+    option3: option3,
+    option4: option4,
+    correct_answer: correct_answer,
+    difficulty: difficulty,
+    topic: topic,
+    created_at: now
+  )
+  true
+end
 
   def get_all_questions
     DB[:questions].all.map { |q| question_row_to_hash(q) }
@@ -1061,18 +1059,17 @@ end
   end
 
   def update_question(id, text, opt1, opt2, opt3, opt4, correct, difficulty, topic)
-  DB[:questions].where(id: id).update(
-    text: text,
-    option1: opt1,
-    option2: opt2,
-    option3: opt3,
-    option4: opt4,
-    correct_answer: correct,
-    difficulty: difficulty,
-    topic: topic,
-    updated_at: Time.now
-  )
-end
+    DB[:questions].where(id: id).update(
+      text: text,
+      option1: opt1,
+      option2: opt2,
+      option3: opt3,
+      option4: opt4,
+      correct_answer: correct,
+      difficulty: difficulty,
+      topic: topic
+    )
+  end
 
 def delete_question(id)
   DB[:schedule_questions].where(question_id: id).delete
