@@ -656,9 +656,16 @@ end
     )
 
     (questions_list || []).each_with_index do |question, index|
+      question_id =
+        if question.is_a?(Hash)
+          question["id"] || question[:id]
+        else
+          question
+        end
+
       DB[:schedule_questions].insert(
         schedule_id: schedule_id,
-        question_id: question["id"] || question[:id],
+        question_id: question_id.to_i,
         position: index
       )
     end

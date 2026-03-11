@@ -6,14 +6,15 @@ require_relative 'db_helper'
 require 'json'
 require 'date'
 require 'time'
+require 'securerandom'
 
 configure do
   enable :sessions
+  set :session_secret, ENV.fetch("SESSION_SECRET") { "change-this-in-development-only" }
   set :sessions,
       key: 'exam_system.session',
       httponly: true,
-      same_site: :lax,
-      secret: ENV.fetch('SESSION_SECRET')
+      same_site: :lax
 end
 
 set :bind, '0.0.0.0'
@@ -31,8 +32,6 @@ configure :development do
     /.*\.ngrok\.app/
   ]
 end
-
-enable :sessions
 
 helpers do
   def protected!

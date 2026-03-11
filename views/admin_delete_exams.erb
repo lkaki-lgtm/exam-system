@@ -46,7 +46,7 @@
       <span class="text-sm text-gray-500"><%= @schedules&.count || 0 %> exams total</span>
     </div>
 
-    <% if @schedules.blank? %>
+    <% if @schedules.nil? || @schedules.empty? %>
       <div class="text-center py-12">
         <p class="text-gray-500">No scheduled exams to delete.</p>
       </div>
