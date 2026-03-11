@@ -11,8 +11,7 @@ users = [
     password: "admin123",
     role: "admin",
     status: "active",
-    created_at: now,
-    updated_at: now
+    created_at: now
   },
   {
     name: "Teacher User",
@@ -21,8 +20,7 @@ users = [
     password: "teacher123",
     role: "teacher",
     status: "active",
-    created_at: now,
-    updated_at: now
+    created_at: now
   },
   {
     name: "Student User",
@@ -31,8 +29,7 @@ users = [
     password: "student123",
     role: "student",
     status: "active",
-    created_at: now,
-    updated_at: now
+    created_at: now
   }
 ]
 

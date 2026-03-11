@@ -7,6 +7,15 @@ require 'json'
 require 'date'
 require 'time'
 
+configure do
+  enable :sessions
+  set :sessions,
+      key: 'exam_system.session',
+      httponly: true,
+      same_site: :lax,
+      secret: ENV.fetch('SESSION_SECRET')
+end
+
 set :bind, '0.0.0.0'
 set :port, ENV['PORT'] || 4567
 

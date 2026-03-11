@@ -39,7 +39,7 @@
               <tr class="hover:bg-gray-50">
                 <td class="px-6 py-4 text-sm text-gray-800"><%= teacher["name"] || "N/A" %></td>
                 <td class="px-6 py-4 text-sm text-gray-600"><%= teacher["email"] || "N/A" %></td>
-                <td class="px-6 py-4 text-sm text-gray-600"><%= teacher["registered_at"][0..9] %></td>
+                <td class="px-6 py-4 text-sm text-gray-600"><%= teacher["created_at"]&.[](0..9) || "N/A" %></td>
                 <td class="px-6 py-4 text-sm text-gray-600">
                   <%= @schedules&.select { |s| s["assigned_teacher_id"] == teacher["id"] }&.count || 0 %>
                 </td>
