@@ -63,24 +63,23 @@ class ExamDatabase
   end
 
   def schedule_row_to_hash(row)
-    return nil unless row
+  return nil unless row
 
-    {
-      "id" => row[:id],
-      "title" => row[:title],
-      "description" => row[:description],
-      "duration_minutes" => row[:duration_minutes],
-      "scheduled_date" => row[:scheduled_date].to_s,
-      "start_time" => row[:start_time],
-      "end_time" => row[:end_time],
-      "status" => row[:status],
-      "assigned_teacher_id" => row[:assigned_teacher_id],
-      "assigned_students" => schedule_student_ids(row[:id]),
-      "questions" => schedule_questions(row[:id]),
-      "created_at" => row[:created_at]&.to_s,
-      "updated_at" => row[:updated_at]&.to_s
-    }
-  end
+  {
+    "id" => row[:id],
+    "title" => row[:title],
+    "description" => row[:description],
+    "duration_minutes" => row[:duration_minutes],
+    "scheduled_date" => row[:scheduled_date].to_s,
+    "start_time" => row[:start_time],
+    "end_time" => row[:end_time],
+    "status" => row[:status],
+    "assigned_teacher_id" => row[:assigned_teacher_id],
+    "assigned_students" => schedule_student_ids(row[:id]),
+    "questions" => schedule_questions(row[:id]),
+    "created_at" => row[:created_at]&.to_s
+  }
+end
 
   def attempt_answers(attempt_id)
     DB[:answers]
@@ -639,37 +638,37 @@ end
   # EXAM SCHEDULING
   # =========================
   def create_exam_schedule(title, description, duration_minutes, scheduled_date, start_time, end_time, questions_list, assigned_teacher_id = nil)
-    now = Time.now
-    schedule_id = DB[:schedules].insert(
-      title: title,
-      description: description,
-      duration_minutes: duration_minutes,
-      scheduled_date: Date.parse(scheduled_date.to_s),
-      start_time: start_time,
-      end_time: end_time,
-      status: "scheduled",
-      assigned_teacher_id: assigned_teacher_id,
-      created_at: now,
-      updated_at: now
+  now = Time.now
+
+  schedule_id = DB[:schedules].insert(
+    title: title,
+    description: description,
+    duration_minutes: duration_minutes.to_i,
+    scheduled_date: Date.parse(scheduled_date.to_s),
+    start_time: start_time,
+    end_time: end_time,
+    status: "scheduled",
+    assigned_teacher_id: assigned_teacher_id,
+    created_at: now
+  )
+
+  (questions_list || []).each_with_index do |question, index|
+    question_id =
+      if question.is_a?(Hash)
+        question["id"] || question[:id]
+      else
+        question
+      end
+
+    DB[:schedule_questions].insert(
+      schedule_id: schedule_id,
+      question_id: question_id.to_i,
+      position: index
     )
-
-    (questions_list || []).each_with_index do |question, index|
-      question_id =
-        if question.is_a?(Hash)
-          question["id"] || question[:id]
-        else
-          question
-        end
-
-      DB[:schedule_questions].insert(
-        schedule_id: schedule_id,
-        question_id: question_id.to_i,
-        position: index
-      )
-    end
-
-    get_schedule(schedule_id)
   end
+
+  get_schedule(schedule_id)
+end
 
   def get_all_schedules
     DB[:schedules].all.map { |row| schedule_row_to_hash(row) }
