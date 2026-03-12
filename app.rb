@@ -252,24 +252,37 @@ end
 post '/admin/create-exam' do
   admin_only!
 
-  question_ids = (params[:question_ids] || []).map(&:to_i)
-  all_questions = db.get_all_questions
-  selected_questions = all_questions.select { |q| question_ids.include?(q["id"].to_i) }
-  duration = params[:duration].to_i
-  assigned_teacher_id = params[:assigned_teacher_id].to_s.strip.empty? ? nil : params[:assigned_teacher_id].to_i
+  begin
+    question_ids = (params[:question_ids] || []).map(&:to_i)
 
-  db.create_exam_schedule(
-    params[:title],
-    params[:description],
-    duration,
-    params[:date],
-    params[:start_time],
-    params[:end_time],
-    selected_questions,
-    assigned_teacher_id
-  )
+    all_questions = db.get_all_questions
+    selected_questions = all_questions.select { |q| question_ids.include?(q["id"].to_i) }
 
-  redirect '/admin/dashboard'
+    duration = params[:duration].to_i
+    assigned_teacher_id = params[:assigned_teacher_id].to_s.strip.empty? ? nil : params[:assigned_teacher_id].to_i
+
+    if params[:date].nil? || params[:date].strip == ""
+      halt 400, "Date is required"
+    end
+
+    db.create_exam_schedule(
+      params[:title],
+      params[:description],
+      duration,
+      params[:date],
+      params[:start_time],
+      params[:end_time],
+      selected_questions,
+      assigned_teacher_id
+    )
+
+    redirect '/admin/dashboard'
+
+  rescue => e
+    puts "❌ ERROR creating exam: #{e.message}"
+    puts e.backtrace
+    halt 500, "Exam creation failed"
+  end
 end
 
 get '/admin/students' do

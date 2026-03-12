@@ -74,7 +74,7 @@ class ExamDatabase
     "start_time" => row[:start_time],
     "end_time" => row[:end_time],
     "status" => row[:status],
-    "assigned_teacher_id" => row[:assigned_teacher_id],
+    "assigned_teacher_id" => nil,
     "assigned_students" => schedule_student_ids(row[:id]),
     "questions" => schedule_questions(row[:id]),
     "created_at" => row[:created_at]&.to_s
@@ -648,7 +648,6 @@ end
     start_time: start_time,
     end_time: end_time,
     status: "scheduled",
-    assigned_teacher_id: assigned_teacher_id,
     created_at: now
   )
 

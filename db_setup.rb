@@ -1,5 +1,6 @@
 require './database_connection'
 
+# USERS
 DB.create_table? :users do
   primary_key :id
   String :name
@@ -12,9 +13,10 @@ DB.create_table? :users do
   DateTime :updated_at
 end
 
+# QUESTIONS
 DB.create_table? :questions do
   primary_key :id
-  String :text, text: true
+  Text :text
   String :option1
   String :option2
   String :option3
@@ -26,10 +28,11 @@ DB.create_table? :questions do
   DateTime :updated_at
 end
 
+# EXAM SCHEDULE
 DB.create_table? :schedules do
   primary_key :id
   String :title
-  String :description, text: true
+  Text :description
   Integer :duration_minutes
   Date :scheduled_date
   String :start_time
@@ -40,12 +43,14 @@ DB.create_table? :schedules do
   DateTime :updated_at
 end
 
+# STUDENTS ASSIGNED TO EXAMS
 DB.create_table? :schedule_students do
   primary_key :id
   Integer :schedule_id
   Integer :student_id
 end
 
+# QUESTIONS IN EXAM
 DB.create_table? :schedule_questions do
   primary_key :id
   Integer :schedule_id
@@ -53,6 +58,7 @@ DB.create_table? :schedule_questions do
   Integer :position
 end
 
+# EXAM ATTEMPTS
 DB.create_table? :attempts do
   primary_key :id
   Integer :student_id
@@ -62,38 +68,41 @@ DB.create_table? :attempts do
   String :status
   Integer :score
   Integer :violation_count
-  String :removal_reason, text: true
+  Text :removal_reason
   String :removed_by
   DateTime :removed_at
-  String :termination_reason, text: true
+  Text :termination_reason
   DateTime :terminated_at
   TrueClass :completed_by_teacher
-  String :teacher_notes, text: true
-  String :feedback_json, text: true
-  String :warnings_json, text: true
+  Text :teacher_notes
+  Text :feedback_json
+  Text :warnings_json
   DateTime :created_at
   DateTime :updated_at
 end
 
+# ANSWERS
 DB.create_table? :answers do
   primary_key :id
   Integer :attempt_id
   Integer :question_id
   Integer :question_index
-  String :answer, text: true
+  Text :answer
   TrueClass :marked_for_review, default: false
   DateTime :created_at
   DateTime :updated_at
 end
 
+# VIOLATIONS
 DB.create_table? :violations do
   primary_key :id
   Integer :attempt_id
   String :violation_type
-  String :details_json, text: true
+  Text :details_json
   DateTime :created_at
 end
 
+# RESULTS
 DB.create_table? :results do
   primary_key :id
   Integer :student_id
@@ -105,8 +114,15 @@ DB.create_table? :results do
   DateTime :updated_at
 end
 
-DB.add_index :results, [:student_id, :schedule_id], unique: true unless DB.indexes(:results).key?(:results_student_id_schedule_id_index)
-DB.add_index :answers, [:attempt_id, :question_index], unique: true unless DB.indexes(:answers).key?(:answers_attempt_id_question_index_index)
-DB.add_index :schedule_students, [:schedule_id, :student_id], unique: true unless DB.indexes(:schedule_students).key?(:schedule_students_schedule_id_student_id_index)
+# ---------- INDEXES ----------
+
+DB.run "CREATE UNIQUE INDEX IF NOT EXISTS results_student_id_schedule_id_index 
+ON results (student_id, schedule_id);"
+
+DB.run "CREATE UNIQUE INDEX IF NOT EXISTS answers_attempt_id_question_index_index 
+ON answers (attempt_id, question_index);"
+
+DB.run "CREATE UNIQUE INDEX IF NOT EXISTS schedule_students_schedule_id_student_id_index 
+ON schedule_students (schedule_id, student_id);"
 
 puts "✅ Schema created successfully"
