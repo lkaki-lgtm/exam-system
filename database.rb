@@ -80,7 +80,7 @@ class ExamDatabase
     "questions" => schedule_questions(row[:id]),
     "created_at" => row[:created_at]&.to_s
   }
-
+end
 
   def attempt_answers(attempt_id)
     DB[:answers]
@@ -95,6 +95,7 @@ class ExamDatabase
         }
       end
   end
+
 
   def attempt_marked_questions(attempt_id)
     DB[:answers]
@@ -1479,6 +1480,5 @@ end
 
 def get_student_results(student_id)
   stringify_array(DB[:results].where(student_id: student_id).all)
-end
 end
 end
