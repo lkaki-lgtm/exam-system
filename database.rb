@@ -80,7 +80,7 @@ class ExamDatabase
     "questions" => schedule_questions(row[:id]),
     "created_at" => row[:created_at]&.to_s
   }
-end
+
 
   def attempt_answers(attempt_id)
     DB[:answers]
@@ -148,6 +148,125 @@ end
       "teacher_notes" => row[:teacher_notes]
     }
   end
+
+  # =========================
+  # DATABASE SCHEMA SETUP
+  # =========================
+  def setup_database_schema
+  # Check and add columns to schedules table
+  begin
+    schedule_columns = DB.schema(:schedules).map { |col| col[0].to_s }
+    
+    unless schedule_columns.include?('created_at')
+      DB.alter_table(:schedules) do
+        add_column :created_at, Time
+      end
+      puts "✅ Added created_at to schedules table"
+    end
+    
+    unless schedule_columns.include?('updated_at')
+      DB.alter_table(:schedules) do
+        add_column :updated_at, Time
+      end
+      puts "✅ Added updated_at to schedules table"
+    end
+  rescue => e
+    puts "⚠️ Error checking/adding columns to schedules: #{e.message}"
+  end
+
+  # Check and add columns to attempts table
+  begin
+    attempt_columns = DB.schema(:attempts).map { |col| col[0].to_s }
+    
+    unless attempt_columns.include?('updated_at')
+      DB.alter_table(:attempts) do
+        add_column :updated_at, Time
+      end
+      puts "✅ Added updated_at to attempts table"
+    end
+    
+    unless attempt_columns.include?('created_at')
+      DB.alter_table(:attempts) do
+        add_column :created_at, Time
+      end
+      puts "✅ Added created_at to attempts table"
+    end
+  rescue => e
+    puts "⚠️ Error checking/adding columns to attempts: #{e.message}"
+  end
+
+  # Check and add columns to questions table
+  begin
+    question_columns = DB.schema(:questions).map { |col| col[0].to_s }
+    
+    unless question_columns.include?('updated_at')
+      DB.alter_table(:questions) do
+        add_column :updated_at, Time
+      end
+      puts "✅ Added updated_at to questions table"
+    end
+    
+    unless question_columns.include?('created_at')
+      DB.alter_table(:questions) do
+        add_column :created_at, Time
+      end
+      puts "✅ Added created_at to questions table"
+    end
+  rescue => e
+    puts "⚠️ Error checking/adding columns to questions: #{e.message}"
+  end
+
+  # Check and add columns to answers table
+  begin
+    answer_columns = DB.schema(:answers).map { |col| col[0].to_s }
+    
+    unless answer_columns.include?('updated_at')
+      DB.alter_table(:answers) do
+        add_column :updated_at, Time
+      end
+      puts "✅ Added updated_at to answers table"
+    end
+    
+    unless answer_columns.include?('created_at')
+      DB.alter_table(:answers) do
+        add_column :created_at, Time
+      end
+      puts "✅ Added created_at to answers table"
+    end
+  rescue => e
+    puts "⚠️ Error checking/adding columns to answers: #{e.message}"
+  end
+
+  # Check and add columns to violations table
+  begin
+    violation_columns = DB.schema(:violations).map { |col| col[0].to_s }
+    
+    unless violation_columns.include?('updated_at')
+      DB.alter_table(:violations) do
+        add_column :updated_at, Time
+      end
+      puts "✅ Added updated_at to violations table"
+    end
+  rescue => e
+    puts "⚠️ Error checking/adding columns to violations: #{e.message}"
+  end
+
+  # Check and add columns to results table
+  begin
+    result_columns = DB.schema(:results).map { |col| col[0].to_s }
+    
+    unless result_columns.include?('updated_at')
+      DB.alter_table(:results) do
+        add_column :updated_at, Time
+      end
+      puts "✅ Added updated_at to results table"
+    end
+  rescue => e
+    puts "⚠️ Error checking/adding columns to results: #{e.message}"
+  end
+
+  puts "✅ Database schema setup complete!"
+end
 
   # =========================
   # USER MANAGEMENT
@@ -788,23 +907,21 @@ end
       puts "  Exam start: #{exam_start}"
       puts "  Exam end: #{exam_end}"
       puts "  Current status: #{s[:status]}"
-      puts "  Now >= start? #{now >= exam_start}"
-      puts "  Now <= end? #{now <= exam_end}"
 
       # Check if exam should be active
       if now >= exam_start && now <= exam_end
         if s[:status] == "scheduled"
           DB[:schedules].where(id: s[:id]).update(
-            status: "active", 
-            updated_at: Time.now
+            status: "active",
+            updated_at: now
           )
           updated = true
           puts "✅ Exam '#{s[:title]}' is now ACTIVE"
         elsif s[:status] != "active"
           # Force status to active if it's within time window
           DB[:schedules].where(id: s[:id]).update(
-            status: "active", 
-            updated_at: Time.now
+            status: "active",
+            updated_at: now
           )
           updated = true
           puts "⚠️ Exam '#{s[:title]}' forced to ACTIVE (was #{s[:status]})"
@@ -815,8 +932,8 @@ end
       if now > exam_end
         if s[:status] != "completed" && s[:status] != "expired"
           DB[:schedules].where(id: s[:id]).update(
-            status: "completed", 
-            updated_at: Time.now
+            status: "completed",
+            updated_at: now
           )
           updated = true
           puts "✅ Exam '#{s[:title]}' is now COMPLETED"
@@ -835,9 +952,9 @@ end
 
             DB[:attempts].where(id: att[:id]).update(
               status: "completed",
-              end_time: Time.now,
+              end_time: now,
               score: score,
-              updated_at: Time.now
+              updated_at: now
             )
           end
         end
@@ -1363,5 +1480,5 @@ end
 def get_student_results(student_id)
   stringify_array(DB[:results].where(student_id: student_id).all)
 end
-
+end
 end

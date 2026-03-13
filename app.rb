@@ -316,6 +316,12 @@ get '/admin/force-update-exams' do
   "Exam statuses updated: #{result ? 'Changes made' : 'No changes needed'}"
 end
 
+get '/admin/setup-database' do
+  admin_only!
+  db.setup_database_schema
+  "Database schema updated successfully! Check the console for details."
+end
+
 get '/admin/results' do
   admin_only!
   @attempts = db.get_all_attempts
