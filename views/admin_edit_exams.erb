@@ -6,7 +6,7 @@
     </a>
   </div>
 
-  <% if @schedules.empty? %>
+  <% if @schedules.nil? || @schedules.empty? %>
     <div class="bg-white rounded-xl shadow-lg p-12 text-center">
       <div class="text-7xl mb-4">📭</div>
       <h3 class="text-2xl font-bold text-gray-800 mb-2">No Scheduled Exams</h3>
@@ -20,16 +20,17 @@
       <% @schedules.each do |schedule| %>
         <div class="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition">
           <!-- Exam Header -->
-          <div class="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b flex justify-between items-center">
+          <div class="bg-blue-50 px-5 py-4 border-b flex justify-between items-center">
             <div>
-              <span class="text-sm text-blue-600 font-semibold">Exam ID: <%= schedule["id"][-8..-1] %></span>
-              <h3 class="text-xl font-bold text-gray-800 mt-1"><%= schedule["title"] %></h3>
+              <p class="text-sm text-blue-600 font-semibold">Exam ID: <%= schedule["id"] || "N/A" %></p>
+              <h3 class="text-2xl font-bold text-gray-800 mt-1"><%= schedule["title"] || "Untitled Exam" %></h3>
             </div>
+
             <span class="px-3 py-1 rounded-full text-sm font-semibold
-              <%= schedule["status"] == 'scheduled' ? 'bg-green-100 text-green-800' : 
-                 (schedule["status"] == 'active' ? 'bg-blue-100 text-blue-800' : 
-                 (schedule["status"] == 'completed' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800')) %>">
-              <%= schedule["status"].upcase %>
+              <%= (schedule["status"] || "").downcase == "scheduled" ? "bg-green-100 text-green-700" :
+                  (schedule["status"] || "").downcase == "active" ? "bg-yellow-100 text-yellow-700" :
+                  "bg-gray-100 text-gray-700" %>">
+              <%= (schedule["status"] || "unknown").upcase %>
             </span>
           </div>
 
@@ -75,13 +76,18 @@
               </div>
             </div>
 
-            <!-- NEW: Teacher Assignment -->
+            <!-- Teacher Assignment -->
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-2">Assign Teacher</label>
-              <select name="assigned_teacher_id" class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 transition">
+
+              <% current_teacher_id = schedule["assigned_teacher_id"] || schedule["teacher_id"] %>
+
+              <select name="assigned_teacher_id"
+                      class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 transition">
                 <option value="">-- No teacher assigned --</option>
-                <% (@all_teachers || []).each do |teacher| %>
-                  <option value="<%= teacher["id"] %>" <%= schedule["assigned_teacher_id"] == teacher["id"] ? "selected" : "" %>>
+
+                <% (@teachers || []).each do |teacher| %>
+                  <option value="<%= teacher["id"] %>" <%= "selected" if current_teacher_id.to_s == teacher["id"].to_s %>>
                     <%= teacher["name"] %> (<%= teacher["email"] %>)
                   </option>
                 <% end %>
@@ -100,44 +106,43 @@
             </div>
 
             <!-- Questions Selection -->
-<div>
-  <label class="block text-sm font-semibold text-gray-700 mb-4">Select Questions</label>
-  <div class="space-y-4 max-h-60 overflow-y-auto border-2 border-gray-200 rounded-lg p-4">
-    <% @all_questions.each do |q| %>
-      <div class="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
-        <% 
-          # Safely check if question is selected - handle both formats
-          checked = false
-          if schedule["questions"].is_a?(Array)
-            checked = schedule["questions"].any? { |sq| sq.is_a?(Hash) && sq["id"] == q["id"] }
-          elsif schedule["question_pool"].is_a?(Array)
-            checked = schedule["question_pool"].include?(q["id"])
-          end
-        %>
-        <input type="checkbox" name="question_ids[]" value="<%= q["id"] %>" 
-               <%= checked ? "checked" : "" %>
-               class="mt-1 w-5 h-5 text-blue-600">
-        <div>
-          <p class="font-medium"><%= q["text"] %></p>
-          <p class="text-sm text-gray-600">
-            <%= q["options"].join(", ") %> | 
-            <span class="<%= q["difficulty"] == 'easy' ? 'text-green-600' : (q["difficulty"] == 'medium' ? 'text-yellow-600' : 'text-red-600') %>">
-              <%= q["difficulty"]&.capitalize || "Medium" %>
-            </span>
-          </p>
-        </div>
-      </div>
-    <% end %>
-  </div>
-</div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-4">Select Questions</label>
+              <div class="space-y-4 max-h-60 overflow-y-auto border-2 border-gray-200 rounded-lg p-4">
+                <% (@all_questions || []).each do |q| %>
+                  <div class="flex items-start space-x-3 p-2 hover:bg-gray-50 rounded">
+                    <%
+                      checked = false
+                      if schedule["questions"].is_a?(Array)
+                        checked = schedule["questions"].any? { |sq| sq.is_a?(Hash) && sq["id"].to_s == q["id"].to_s }
+                      elsif schedule["question_pool"].is_a?(Array)
+                        checked = schedule["question_pool"].map(&:to_s).include?(q["id"].to_s)
+                      end
+                    %>
+                    <input type="checkbox" name="question_ids[]" value="<%= q["id"] %>"
+                           <%= checked ? "checked" : "" %>
+                           class="mt-1 w-5 h-5 text-blue-600">
+                    <div>
+                      <p class="font-medium"><%= q["text"] %></p>
+                      <p class="text-sm text-gray-600">
+                        <%= (q["options"] || []).join(", ") %> |
+                        <span class="<%= q["difficulty"] == 'easy' ? 'text-green-600' : (q["difficulty"] == 'medium' ? 'text-yellow-600' : 'text-red-600') %>">
+                          <%= q["difficulty"]&.capitalize || "Medium" %>
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
 
             <!-- Action Buttons -->
             <div class="flex justify-end space-x-4 pt-4 border-t">
-              <button type="submit" 
+              <button type="submit"
                       class="bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 transition transform hover:scale-105">
                 💾 Update Exam
               </button>
-              <a href="/admin/edit-exams" 
+              <a href="/admin/edit-exams"
                  class="bg-gray-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-gray-600 transition">
                 Cancel
               </a>

@@ -259,7 +259,8 @@ post '/admin/create-exam' do
     selected_questions = all_questions.select { |q| question_ids.include?(q["id"].to_i) }
 
     duration = params[:duration].to_i
-    assigned_teacher_id = params[:assigned_teacher_id].to_s.strip.empty? ? nil : params[:assigned_teacher_id].to_i
+    assigned_teacher_id = params[:assigned_teacher_id]
+    assigned_teacher_id = nil if assigned_teacher_id.nil? || assigned_teacher_id.strip.empty?
 
     if params[:date].nil? || params[:date].strip == ""
       halt 400, "Date is required"

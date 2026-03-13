@@ -74,7 +74,8 @@ class ExamDatabase
     "start_time" => row[:start_time],
     "end_time" => row[:end_time],
     "status" => row[:status],
-    "assigned_teacher_id" => nil,
+    "teacher_id" => row[:teacher_id],
+    "assigned_teacher_id" => row[:teacher_id],
     "assigned_students" => schedule_student_ids(row[:id]),
     "questions" => schedule_questions(row[:id]),
     "created_at" => row[:created_at]&.to_s
@@ -244,8 +245,10 @@ end
   # TEACHER METHODS
   # =========================
   def get_teacher_exams(teacher_id)
-    get_all_schedules.select { |s| s["assigned_teacher_id"].to_s == teacher_id.to_s }
+  get_all_schedules.select do |s|
+    s["teacher_id"].to_s == teacher_id.to_s || s["assigned_teacher_id"].to_s == teacher_id.to_s
   end
+end
 
   def get_teacher_students(teacher_id)
     teacher_exams = get_teacher_exams(teacher_id)
@@ -648,6 +651,7 @@ end
     start_time: start_time,
     end_time: end_time,
     status: "scheduled",
+    teacher_id: assigned_teacher_id,
     created_at: now
   )
 
@@ -1090,7 +1094,7 @@ def update_exam(schedule_id, attrs = {})
     start_time: attrs[:start_time],
     end_time: attrs[:end_time],
     status: attrs[:status],
-    assigned_teacher_id: attrs[:assigned_teacher_id],
+    teacher_id: attrs[:assigned_teacher_id],
     updated_at: Time.now
   )
 
