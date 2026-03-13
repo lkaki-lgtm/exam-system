@@ -55,9 +55,11 @@ db = ExamDatabase.new
 
 before do
   begin
+    # Force update exam statuses on every request
     db.update_exam_statuses if db.respond_to?(:update_exam_statuses)
   rescue => e
     puts "❌ Error in before filter: #{e.message}"
+    puts e.backtrace
   end
 end
 
@@ -306,6 +308,12 @@ get '/admin/teachers' do
   end
 
   erb :admin_teachers
+end
+
+get '/admin/force-update-exams' do
+  admin_only!
+  result = db.update_exam_statuses
+  "Exam statuses updated: #{result ? 'Changes made' : 'No changes needed'}"
 end
 
 get '/admin/results' do

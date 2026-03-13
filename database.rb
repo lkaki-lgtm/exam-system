@@ -765,31 +765,69 @@ end
   end
 
   def update_exam_statuses
-    schedules = DB[:schedules].all
-    now = Time.now
-    updated = false
+  schedules = DB[:schedules].all
+  now = Time.now
+  updated = false
 
-    schedules.each do |s|
-      begin
-        exam_start = Time.parse("#{s[:scheduled_date]} #{s[:start_time]}")
-        exam_end = Time.parse("#{s[:scheduled_date]} #{s[:end_time]}")
+  schedules.each do |s|
+    begin
+      # Parse dates and times more carefully
+      scheduled_date = s[:scheduled_date].is_a?(String) ? Date.parse(s[:scheduled_date]) : s[:scheduled_date]
+      
+      # Handle time parsing with better error handling
+      start_time_str = s[:start_time].to_s
+      end_time_str = s[:end_time].to_s
+      
+      # Create datetime objects combining date and time
+      exam_start = Time.parse("#{scheduled_date} #{start_time_str}")
+      exam_end = Time.parse("#{scheduled_date} #{end_time_str}")
+      
+      # Debug output to see what's happening
+      puts "Checking exam '#{s[:title]}' (ID: #{s[:id]}):"
+      puts "  Current time: #{now}"
+      puts "  Exam start: #{exam_start}"
+      puts "  Exam end: #{exam_end}"
+      puts "  Current status: #{s[:status]}"
+      puts "  Now >= start? #{now >= exam_start}"
+      puts "  Now <= end? #{now <= exam_end}"
 
-        if now >= exam_start && now <= exam_end && s[:status] == "scheduled"
-          DB[:schedules].where(id: s[:id]).update(status: "active", updated_at: Time.now)
+      # Check if exam should be active
+      if now >= exam_start && now <= exam_end
+        if s[:status] == "scheduled"
+          DB[:schedules].where(id: s[:id]).update(
+            status: "active", 
+            updated_at: Time.now
+          )
           updated = true
           puts "✅ Exam '#{s[:title]}' is now ACTIVE"
+        elsif s[:status] != "active"
+          # Force status to active if it's within time window
+          DB[:schedules].where(id: s[:id]).update(
+            status: "active", 
+            updated_at: Time.now
+          )
+          updated = true
+          puts "⚠️ Exam '#{s[:title]}' forced to ACTIVE (was #{s[:status]})"
+        end
+      end
 
-        elsif now > exam_end && s[:status] != "completed"
-          DB[:schedules].where(id: s[:id]).update(status: "completed", updated_at: Time.now)
+      # Check if exam has ended
+      if now > exam_end
+        if s[:status] != "completed" && s[:status] != "expired"
+          DB[:schedules].where(id: s[:id]).update(
+            status: "completed", 
+            updated_at: Time.now
+          )
           updated = true
           puts "✅ Exam '#{s[:title]}' is now COMPLETED"
 
+          # Complete any in-progress attempts
           DB[:attempts].where(schedule_id: s[:id], status: "in_progress").all.each do |att|
             schedule = get_schedule(s[:id])
             answers = attempt_answers(att[:id])
             score = 0
 
-            if answers.any?
+            if answers.any? && schedule && schedule["questions"]
               schedule["questions"].each_with_index do |q, i|
                 score += 1 if answers[i] && answers[i]["answer"] == q["correct"]
               end
@@ -803,13 +841,15 @@ end
             )
           end
         end
-      rescue => e
-        puts "❌ Error updating exam: #{e.message}"
       end
+    rescue => e
+      puts "❌ Error updating exam: #{e.message}"
+      puts e.backtrace
     end
-
-    updated
   end
+
+  updated
+end
 
   # =========================
   # EXAM ATTEMPTS
