@@ -12,3 +12,5 @@ gem "pg"
 gem "sequel"
 
 gem "dotenv"
+
+gem 'rufus-scheduler'

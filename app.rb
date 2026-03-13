@@ -7,6 +7,7 @@ require 'json'
 require 'date'
 require 'time'
 require 'securerandom'
+require 'rufus-scheduler'
 
 configure do
   enable :sessions
@@ -52,6 +53,16 @@ helpers do
 end
 
 db = ExamDatabase.new
+scheduler = Rufus::Scheduler.new
+
+scheduler.every '1m' do
+  begin
+    puts "⏰ Scheduled task: Checking exam statuses..."
+    db.update_exam_statuses
+  rescue => e
+    puts "❌ Error in scheduled task: #{e.message}"
+  end
+end
 
 before do
   begin

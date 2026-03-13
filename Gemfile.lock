@@ -3,8 +3,14 @@ GEM
   specs:
     base64 (0.3.0)
     bigdecimal (4.0.1)
+    concurrent-ruby (1.3.6)
     csv (3.3.5)
     dotenv (3.2.0)
+    et-orbi (1.4.0)
+      tzinfo
+    fugit (1.12.1)
+      et-orbi (~> 1.4)
+      raabro (~> 1.4)
     httparty (0.24.2)
       csv
       mini_mime (>= 1.0.0)
@@ -20,6 +26,7 @@ GEM
     pg (1.6.3-x86_64-linux)
     puma (7.2.0)
       nio4r (~> 2.0)
+    raabro (1.4.0)
     rack (3.2.5)
     rack-protection (4.2.1)
       base64 (>= 0.1.0)
@@ -31,6 +38,8 @@ GEM
     rackup (2.3.1)
       rack (>= 3)
     ruby2_keywords (0.0.5)
+    rufus-scheduler (3.9.2)
+      fugit (~> 1.1, >= 1.11.1)
     sequel (5.102.0)
       bigdecimal
     sinatra (4.2.1)
@@ -41,6 +50,8 @@ GEM
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
     tilt (2.7.0)
+    tzinfo (2.0.6)
+      concurrent-ruby (~> 1.0)
 
 PLATFORMS
   x64-mingw-ucrt
@@ -52,6 +63,7 @@ DEPENDENCIES
   pg
   puma
   rackup
+  rufus-scheduler
   sequel
   sinatra
 
