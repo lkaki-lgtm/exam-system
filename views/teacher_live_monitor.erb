@@ -17,37 +17,56 @@
         <p class="text-indigo-100">Email: <%= @student["email"] %></p>
       </div>
       <div class="text-right">
+        <% status_label =
+          case @attempt["status"]
+          when "in_progress" then "🟢 Active"
+          when "completed" then "✅ Completed"
+          when "terminated_for_malpractice" then "🚫 Terminated"
+          when "removed_for_malpractice" then "⛔ Removed"
+          when "stopped_by_teacher" then "⏹️ Stopped"
+          else @attempt["status"].to_s.gsub('_', ' ').split.map(&:capitalize).join(' ')
+          end
+        %>
+
         <span class="bg-green-400 text-white px-4 py-2 rounded-lg font-semibold">
-          🟢 Active
+          <%= status_label %>
         </span>
       </div>
     </div>
   </div>
+
+  <% answered_count = (@attempt["answers"] || []).count { |a| a && a["answer"] && !a["answer"].to_s.strip.empty? } %>
+  <% total_questions = (@exam["questions"] || []).count %>
+  <% progress_percent = total_questions > 0 ? ((answered_count.to_f / total_questions) * 100).round(2) : 0 %>
 
   <!-- Live Stats -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
     <div class="bg-white rounded-xl shadow-lg p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-2">Progress</h3>
       <div class="text-4xl font-bold text-blue-600">
-        <%= @attempt["answers"].length %>/<%= @exam["questions"].count %>
+        <%= answered_count %>/<%= total_questions %>
       </div>
       <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
-        <div class="bg-blue-500 rounded-full h-2" 
-             style="width: <%= (@attempt["answers"].length.to_f / @exam["questions"].count * 100) %>%"></div>
+        <div class="bg-blue-500 rounded-full h-2" style="width: <%= progress_percent %>%"></div>
       </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-lg p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-2">Time Elapsed</h3>
       <div class="text-4xl font-bold text-amber-600" id="timer">
-        <%= ((Time.now - Time.parse(@attempt["start_time"])) / 60).to_i %>:<%= sprintf("%02d", (Time.now - Time.parse(@attempt["start_time"])) % 60) %>
+        <% begin %>
+          <% elapsed = (Time.now - Time.parse(@attempt["start_time"].to_s)).to_i %>
+          <%= (elapsed / 60).to_i %>:<%= sprintf("%02d", elapsed % 60) %>
+        <% rescue %>
+          0:00
+        <% end %>
       </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-lg p-6">
       <h3 class="text-lg font-bold text-gray-800 mb-2">Violations</h3>
       <div class="text-4xl font-bold text-red-600">
-        <%= @attempt["violations"]&.count || 0 %>
+        <%= (@attempt["violations"] || []).count %>
       </div>
     </div>
   </div>
@@ -59,14 +78,14 @@
         <span>📝</span> Current Question
       </h2>
     </div>
-    
+
     <div class="p-6">
-      <% current_q = @exam["questions"][@attempt["answers"].length] %>
+      <% current_q = (@exam["questions"] || [])[answered_count] %>
       <% if current_q %>
         <div class="p-6 bg-gray-50 rounded-xl">
           <p class="text-xl font-bold text-gray-800 mb-4"><%= current_q["text"] %></p>
-          <div class="grid grid-cols-2 gap-4">
-            <% current_q["options"].each do |opt| %>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <% (current_q["options"] || []).each do |opt| %>
               <div class="p-4 bg-white rounded-lg border-2 border-gray-200">
                 <%= opt %>
               </div>
@@ -86,59 +105,89 @@
         <span>📋</span> Answer History
       </h2>
     </div>
-    
+
     <div class="p-6">
-      <div class="space-y-3">
-        <% @attempt["answers"].each_with_index do |ans, i| %>
-          <% question = @exam["questions"][i] %>
-          <div class="p-4 <%= ans["answer"] == question["correct"] ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500' %> border-l-4 rounded-lg">
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="font-bold text-gray-800">Question <%= i+1 %></p>
-                <p class="text-sm text-gray-600">Selected: <%= ans["answer"] %></p>
+      <% if (@attempt["answers"] || []).empty? %>
+        <p class="text-gray-500 text-center">No answers submitted yet.</p>
+      <% else %>
+        <div class="space-y-3">
+          <% (@attempt["answers"] || []).each_with_index do |ans, i| %>
+            <% question = (@exam["questions"] || [])[i] %>
+            <% next unless question %>
+
+            <% correct = ans["answer"] == question["correct"] %>
+
+            <div class="p-4 <%= correct ? 'bg-green-50 border-green-500' : 'bg-red-50 border-red-500' %> border-l-4 rounded-lg">
+              <div class="flex justify-between items-center gap-4">
+                <div>
+                  <p class="font-bold text-gray-800">Question <%= i + 1 %></p>
+                  <p class="text-sm text-gray-600">Selected: <%= ans["answer"].to_s.strip.empty? ? "No answer" : ans["answer"] %></p>
+                  <p class="text-xs text-gray-500 mt-1"><%= question["text"] %></p>
+                </div>
+                <span class="<%= correct ? 'text-green-600' : 'text-red-600' %> font-bold whitespace-nowrap">
+                  <%= correct ? '✓ Correct' : '✗ Incorrect' %>
+                </span>
               </div>
-              <span class="<%= ans["answer"] == question["correct"] ? 'text-green-600' : 'text-red-600' %> font-bold">
-                <%= ans["answer"] == question["correct"] ? '✓ Correct' : '✗ Incorrect' %>
-              </span>
             </div>
-          </div>
-        <% end %>
-      </div>
+          <% end %>
+        </div>
+      <% end %>
     </div>
   </div>
 
   <!-- Malpractice Log -->
-  <% if @attempt["violations"]&.any? %>
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-      <div class="bg-gradient-to-r from-red-600 to-red-800 px-8 py-5">
-        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
-          <span>🚫</span> Malpractice Log
-        </h2>
-      </div>
-      
-      <div class="p-6">
+  <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div class="bg-gradient-to-r from-red-600 to-red-800 px-8 py-5">
+      <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+        <span>🚫</span> Malpractice Log
+      </h2>
+    </div>
+
+    <div class="p-6">
+      <% violations = @attempt["violations"] || [] %>
+
+      <% if violations.empty? %>
+        <p class="text-gray-500 text-center">No violations recorded.</p>
+      <% else %>
         <div class="space-y-3">
-          <% @attempt["violations"].each do |v| %>
+          <% violations.each do |v| %>
+            <% violation_type = v["violation_type"] || v["type"] || "unknown" %>
+            <% violation_details = v["details"] || v["details_json"] || v["message"] || "No additional details provided." %>
+            <% violation_time = v["time"] || v["timestamp"] || v["created_at"] || v["updated_at"] %>
+
             <div class="p-4 bg-red-50 border-l-4 border-red-500 rounded-lg">
-              <p class="font-bold text-red-800"><%= v["type"].humanize %></p>
-              <p class="text-sm text-red-600"><%= v["message"] %></p>
-              <p class="text-xs text-gray-500 mt-1"><%= v["timestamp"] %></p>
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="font-bold text-red-800">
+                  <%= violation_type.to_s.gsub('_', ' ').split.map(&:capitalize).join(' ') %>
+                </p>
+                <p class="text-xs text-gray-500">
+                  <% if violation_time && !violation_time.to_s.strip.empty? %>
+                    <%= Time.parse(violation_time.to_s).strftime("%d-%m-%Y %I:%M:%S %p") rescue violation_time %>
+                  <% else %>
+                    Time not available
+                  <% end %>
+                </p>
+              </div>
+
+              <p class="text-sm text-red-700 mt-2 break-words">
+                <%= violation_details %>
+              </p>
             </div>
           <% end %>
         </div>
-      </div>
+      <% end %>
     </div>
-  <% end %>
+  </div>
 
   <!-- Emergency Actions -->
   <div class="bg-white rounded-xl shadow-lg p-6">
     <h2 class="text-2xl font-bold text-gray-800 mb-4">Emergency Actions</h2>
-    <div class="flex gap-4">
-      <button onclick="openMalpracticeModal('<%= @attempt["id"] %>', '<%= @student["name"] %>')" 
+    <div class="flex gap-4 flex-wrap">
+      <button onclick="openMalpracticeModal('<%= @attempt["id"] %>', '<%= @student["name"] %>')"
               class="bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition">
         🚫 Remove Student (Malpractice)
       </button>
-      <a href="/teacher/exam/<%= @exam["id"] %>/control" 
+      <a href="/teacher/exam/<%= @exam["id"] %>/control"
          class="bg-gray-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-gray-600 transition">
         Back to Monitor
       </a>
@@ -147,21 +196,21 @@
 </div>
 
 <script>
-  // Update timer every second
-  // Update timer every second
   setInterval(() => {
     const timerEl = document.getElementById('timer');
     if (timerEl) {
       const startTime = new Date('<%= @attempt["start_time"] %>');
       const now = new Date();
       const diff = Math.floor((now - startTime) / 1000);
-      const minutes = Math.floor(diff / 60);
-      const seconds = diff % 60;
-      timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      if (!isNaN(diff) && diff >= 0) {
+        const minutes = Math.floor(diff / 60);
+        const seconds = diff % 60;
+        timerEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      }
     }
   }, 1000);
 
-  // Refresh page every 30 seconds to get latest data
   setTimeout(() => {
     location.reload();
   }, 30000);
