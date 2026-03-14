@@ -267,14 +267,13 @@ post '/admin/create-exam' do
   admin_only!
 
   begin
-    question_ids = (params[:question_ids] || []).map(&:to_i)
-
-    all_questions = db.get_all_questions
-    selected_questions = all_questions.select { |q| question_ids.include?(q["id"].to_i) }
+    question_ids = Array(params[:question_ids]).map(&:to_i)
+    student_ids = Array(params[:student_ids]).map(&:to_i)
 
     duration = params[:duration].to_i
     assigned_teacher_id = params[:assigned_teacher_id]
     assigned_teacher_id = nil if assigned_teacher_id.nil? || assigned_teacher_id.strip.empty?
+    assigned_teacher_id = assigned_teacher_id.to_i if assigned_teacher_id
 
     if params[:date].nil? || params[:date].strip == ""
       halt 400, "Date is required"
@@ -287,8 +286,9 @@ post '/admin/create-exam' do
       params[:date],
       params[:start_time],
       params[:end_time],
-      selected_questions,
-      assigned_teacher_id
+      assigned_teacher_id,
+      student_ids,
+      question_ids
     )
 
     redirect '/admin/dashboard'

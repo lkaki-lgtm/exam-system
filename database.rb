@@ -803,17 +803,17 @@ end
 
   schedule_id = DB[:schedules].insert(data)
 
-  (questions_list || []).each_with_index do |question, index|
-    question_id =
-      if question.is_a?(Hash)
-        question["id"] || question[:id]
-      else
-        question
-      end
+  (student_ids || []).each do |sid|
+    DB[:schedule_students].insert(
+      schedule_id: schedule_id,
+      student_id: sid
+    )
+  end
 
+  (question_ids || []).each_with_index do |qid, index|
     DB[:schedule_questions].insert(
       schedule_id: schedule_id,
-      question_id: question_id.to_i,
+      question_id: qid,
       position: index
     )
   end
