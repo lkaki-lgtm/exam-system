@@ -476,6 +476,119 @@ get '/teacher/exam/:exam_id/proctoring-report' do
   erb :teacher_proctoring_report
 end
 
+get '/teacher/exam/:id/control' do
+  teacher_only!
+
+  exam_id = params[:id].to_i
+  teacher_id = session[:user_id].to_i
+
+  @exam = db.get_schedule(exam_id)
+
+  if @exam.nil?
+    @message = "Exam not found"
+    return erb :message
+  end
+
+  exam_teacher_id = (@exam["assigned_teacher_id"] || @exam["teacher_id"]).to_i
+  if exam_teacher_id != 0 && exam_teacher_id != teacher_id
+    @message = "You are not assigned to monitor this exam."
+    return erb :message
+  end
+
+  assigned_student_ids = DB[:schedule_students]
+    .where(schedule_id: exam_id)
+    .select_map(:student_id)
+
+  @students = DB[:users]
+    .where(id: assigned_student_ids, role: "student")
+    .all
+    .map do |row|
+      {
+        "id" => row[:id],
+        "name" => row[:name],
+        "email" => row[:email],
+        "reg_number" => row[:reg_number],
+        "status" => row[:status]
+      }
+    end
+
+  attempt_rows = DB[:attempts]
+    .where(schedule_id: exam_id)
+    .order(Sequel.desc(:start_time))
+    .all
+
+  latest_attempts_by_student = {}
+
+  attempt_rows.each do |row|
+    sid = row[:student_id]
+    next unless assigned_student_ids.include?(sid)
+    next if latest_attempts_by_student.key?(sid)
+
+    answer_rows = DB[:answers]
+      .where(attempt_id: row[:id])
+      .order(:question_index)
+      .all
+
+    answers = answer_rows.map do |ans|
+      {
+        "id" => ans[:id],
+        "attempt_id" => ans[:attempt_id],
+        "question_id" => ans[:question_id],
+        "question_index" => ans[:question_index],
+        "answer" => ans[:answer],
+        "marked_for_review" => ans[:marked_for_review],
+        "created_at" => ans[:created_at]&.to_s,
+        "updated_at" => ans[:updated_at]&.to_s
+      }
+    end
+
+    violation_rows = DB[:violations]
+      .where(attempt_id: row[:id])
+      .order(:created_at)
+      .all
+
+    violations = violation_rows.map do |v|
+      raw_details = v[:details_json] || v[:details]
+      details_text =
+        if raw_details.is_a?(String)
+          begin
+            parsed = JSON.parse(raw_details)
+            parsed.is_a?(Hash) || parsed.is_a?(Array) ? parsed.to_json : raw_details
+          rescue
+            raw_details
+          end
+        else
+          raw_details.to_s
+        end
+
+      {
+        "id" => v[:id],
+        "attempt_id" => v[:attempt_id],
+        "violation_type" => v[:violation_type] || v[:type] || "unknown",
+        "details" => details_text,
+        "time" => (v[:created_at] || v[:timestamp] || v[:updated_at])&.to_s
+      }
+    end
+
+    latest_attempts_by_student[sid] = {
+      "id" => row[:id],
+      "student_id" => row[:student_id],
+      "schedule_id" => row[:schedule_id],
+      "status" => row[:status],
+      "score" => row[:score],
+      "start_time" => row[:start_time]&.to_s,
+      "end_time" => row[:end_time]&.to_s,
+      "violation_count" => row[:violation_count].to_i,
+      "answers" => answers,
+      "violations" => violations
+    }
+  end
+
+  @active_attempts = latest_attempts_by_student.values
+
+  erb :teacher_exam_control
+end
+
 get '/teacher/exam/:exam_id/control' do
   teacher_only!
   @exam = db.get_schedule(params[:exam_id].to_i)
