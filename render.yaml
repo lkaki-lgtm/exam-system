@@ -6,6 +6,10 @@ services:
     buildCommand: bundle install
     startCommand: bundle exec puma -C config/puma.rb
     envVars:
+      - key: APP_TIMEZONE
+        value: Asia/Kolkata
+      - key: APP_TIMEZONE_OFFSET
+        value: +05:30
       - key: DATABASE_URL
         fromDatabase:
           name: online-exam-db

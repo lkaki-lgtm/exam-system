@@ -1,4 +1,5 @@
 require 'dotenv/load'
+ENV['TZ'] ||= ENV.fetch('APP_TIMEZONE', 'Asia/Kolkata')
 require "sequel"
 require "uri"
 
@@ -14,6 +15,5 @@ DB =
       password: "your_password"
     )
   end
-
 
 puts "✅ Connected to PostgreSQL database"

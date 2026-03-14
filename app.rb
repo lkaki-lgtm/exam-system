@@ -1,3 +1,4 @@
+ENV['TZ'] ||= ENV.fetch('APP_TIMEZONE', 'Asia/Kolkata')
 require 'sinatra'
 require 'dotenv/load'
 require_relative 'database'
@@ -577,10 +578,10 @@ get '/student/exam/:schedule_id' do
     return erb :message
   end
 
-  now = Time.now
+  now = db.app_now
   begin
-    start_time = Time.parse("#{@exam["scheduled_date"]} #{@exam["start_time"]}")
-    end_time = Time.parse("#{@exam["scheduled_date"]} #{@exam["end_time"]}")
+    start_time = db.parse_schedule_time(@exam["scheduled_date"], @exam["start_time"])
+    end_time = db.parse_schedule_time(@exam["scheduled_date"], @exam["end_time"])
 
     if now < start_time
       @message = "This exam hasn't started yet. It starts at #{@exam["start_time"]} on #{@exam["scheduled_date"]}"
@@ -610,9 +611,9 @@ get '/student/exam/:schedule_id' do
     end
   end
 
-  attempt_start = Time.parse(@attempt["start_time"].to_s) rescue Time.now
+  attempt_start = Time.parse(@attempt["start_time"].to_s).getlocal(db.timezone_offset) rescue db.app_now
   duration_seconds = @exam["duration_minutes"].to_i * 60
-  elapsed_seconds = (Time.now - attempt_start).to_i
+  elapsed_seconds = (db.app_now - attempt_start).to_i
   @remaining_seconds = [duration_seconds - elapsed_seconds, 0].max
 
   @answered = []

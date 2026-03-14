@@ -7,7 +7,23 @@ require 'json'
 require 'time'
 
 class ExamDatabase
+  APP_TIMEZONE = ENV.fetch("APP_TIMEZONE", "Asia/Kolkata")
+
   def initialize
+  end
+
+  def app_now
+    Time.now.getlocal(timezone_offset)
+  end
+
+  def timezone_offset
+    ENV.fetch("APP_TIMEZONE_OFFSET", "+05:30")
+  end
+
+  def parse_schedule_time(date_value, time_value)
+    date_str = date_value.is_a?(Date) ? date_value.strftime("%Y-%m-%d") : date_value.to_s
+    time_str = time_value.to_s.strip
+    Time.parse("#{date_str} #{time_str} #{timezone_offset}")
   end
 
   # =========================
@@ -377,19 +393,19 @@ end
   end
 
   def get_active_teacher_exams(teacher_id)
-    teacher_exams = get_teacher_exams(teacher_id)
-    now = Time.now
+  teacher_exams = get_teacher_exams(teacher_id)
+  now = app_now
 
-    teacher_exams.select do |e|
-      begin
-        start_time = Time.parse("#{e["scheduled_date"]} #{e["start_time"]}")
-        end_time = Time.parse("#{e["scheduled_date"]} #{e["end_time"]}")
-        now >= start_time && now <= end_time && e["status"] == "active"
-      rescue
-        false
-      end
+  teacher_exams.select do |e|
+    begin
+      start_time = parse_schedule_time(e["scheduled_date"], e["start_time"])
+      end_time = parse_schedule_time(e["scheduled_date"], e["end_time"])
+      now >= start_time && now <= end_time && e["status"] == "active"
+    rescue
+      false
     end
   end
+end
 
   def get_active_exam_attempts(exam_id)
     DB[:attempts]
@@ -445,7 +461,7 @@ end
 
   def get_active_student_exams(student_id)
     assigned = get_student_assigned_exams(student_id)
-    now = Time.now
+    now = app_now
     attempts = get_student_attempts(student_id)
 
     final_exam_ids = attempts.select do |a|
@@ -456,8 +472,8 @@ end
       next false if final_exam_ids.include?(e["id"])
 
       begin
-        start_time = Time.parse("#{e["scheduled_date"]} #{e["start_time"]}")
-        end_time = Time.parse("#{e["scheduled_date"]} #{e["end_time"]}")
+        start_time = parse_schedule_time(e["scheduled_date"], e["start_time"])
+        end_time = parse_schedule_time(e["scheduled_date"], e["end_time"])
         now >= start_time && now <= end_time && e["status"] == "active"
       rescue
         false
@@ -467,11 +483,11 @@ end
 
   def get_upcoming_student_exams(student_id)
     assigned = get_student_assigned_exams(student_id)
-    now = Time.now
+    now = app_now
 
     assigned.select do |e|
       begin
-        start_time = Time.parse("#{e["scheduled_date"]} #{e["start_time"]}")
+        start_time = parse_schedule_time(e["scheduled_date"], e["start_time"])
         start_time > now && e["status"] == "scheduled"
       rescue
         false
@@ -806,7 +822,7 @@ end
 
   def get_active_schedules
     schedules = get_all_schedules
-    now = Time.now
+    now = app_now
 
     schedules.select do |s|
       if s["status"] == "active"
@@ -816,8 +832,8 @@ end
       next false unless s["status"] == "scheduled"
 
       begin
-        start_time = Time.parse("#{s["scheduled_date"]} #{s["start_time"]}")
-        end_time = Time.parse("#{s["scheduled_date"]} #{s["end_time"]}")
+        start_time = parse_schedule_time(s["scheduled_date"], s["start_time"])
+        end_time = parse_schedule_time(s["scheduled_date"], s["end_time"])
         now >= start_time && now <= end_time
       rescue
         false
@@ -870,13 +886,13 @@ end
 
   def get_upcoming_schedules
     schedules = get_all_schedules
-    now = Time.now
+    now = app_now
 
     schedules.select do |s|
       next unless s["status"] == "scheduled"
 
       begin
-        start_time = Time.parse("#{s["scheduled_date"]} #{s["start_time"]}")
+        start_time = parse_schedule_time(s["scheduled_date"], s["start_time"])
         start_time > now
       rescue
         false
@@ -886,30 +902,25 @@ end
 
   def update_exam_statuses
   schedules = DB[:schedules].all
-  now = Time.now
+  now = app_now
   updated = false
 
   schedules.each do |s|
     begin
-      # Parse dates and times more carefully
       scheduled_date = s[:scheduled_date].is_a?(String) ? Date.parse(s[:scheduled_date]) : s[:scheduled_date]
-      
-      # Handle time parsing with better error handling
+
       start_time_str = s[:start_time].to_s
       end_time_str = s[:end_time].to_s
-      
-      # Create datetime objects combining date and time
-      exam_start = Time.parse("#{scheduled_date} #{start_time_str}")
-      exam_end = Time.parse("#{scheduled_date} #{end_time_str}")
-      
-      # Debug output to see what's happening
+
+      exam_start = parse_schedule_time(scheduled_date, start_time_str)
+      exam_end = parse_schedule_time(scheduled_date, end_time_str)
+
       puts "Checking exam '#{s[:title]}' (ID: #{s[:id]}):"
       puts "  Current time: #{now}"
       puts "  Exam start: #{exam_start}"
       puts "  Exam end: #{exam_end}"
       puts "  Current status: #{s[:status]}"
 
-      # Check if exam should be active
       if now >= exam_start && now <= exam_end
         if s[:status] == "scheduled"
           DB[:schedules].where(id: s[:id]).update(
@@ -919,7 +930,6 @@ end
           updated = true
           puts "✅ Exam '#{s[:title]}' is now ACTIVE"
         elsif s[:status] != "active"
-          # Force status to active if it's within time window
           DB[:schedules].where(id: s[:id]).update(
             status: "active",
             updated_at: now
@@ -929,7 +939,6 @@ end
         end
       end
 
-      # Check if exam has ended
       if now > exam_end
         if s[:status] != "completed" && s[:status] != "expired"
           DB[:schedules].where(id: s[:id]).update(
@@ -939,7 +948,6 @@ end
           updated = true
           puts "✅ Exam '#{s[:title]}' is now COMPLETED"
 
-          # Complete any in-progress attempts
           DB[:attempts].where(schedule_id: s[:id], status: "in_progress").all.each do |att|
             schedule = get_schedule(s[:id])
             answers = attempt_answers(att[:id])
