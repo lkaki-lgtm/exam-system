@@ -12,12 +12,12 @@ class ExamDatabase
   def initialize
   end
 
-  def app_now
-    Time.now.getlocal(timezone_offset)
-  end
-
   def timezone_offset
     ENV.fetch("APP_TIMEZONE_OFFSET", "+05:30")
+  end
+
+  def app_now
+    Time.now.getlocal(timezone_offset)
   end
 
   def parse_schedule_time(date_value, time_value)
@@ -80,22 +80,24 @@ class ExamDatabase
 
   def schedule_row_to_hash(row)
   return nil unless row
+  teacher_value = row[:assigned_teacher_id] || row[:teacher_id]
 
-  {
-    "id" => row[:id],
-    "title" => row[:title],
-    "description" => row[:description],
-    "duration_minutes" => row[:duration_minutes],
-    "scheduled_date" => row[:scheduled_date].to_s,
-    "start_time" => row[:start_time],
-    "end_time" => row[:end_time],
-    "status" => row[:status],
-    "teacher_id" => row[:teacher_id],
-    "assigned_teacher_id" => row[:teacher_id],
-    "assigned_students" => schedule_student_ids(row[:id]),
-    "questions" => schedule_questions(row[:id]),
-    "created_at" => row[:created_at]&.to_s
-  }
+{
+  "id" => row[:id],
+  "title" => row[:title],
+  "description" => row[:description],
+  "duration_minutes" => row[:duration_minutes],
+  "scheduled_date" => row[:scheduled_date].to_s,
+  "start_time" => row[:start_time],
+  "end_time" => row[:end_time],
+  "status" => row[:status],
+  "teacher_id" => teacher_value,
+  "assigned_teacher_id" => teacher_value,
+  "assigned_students" => schedule_student_ids(row[:id]),
+  "questions" => schedule_questions(row[:id]),
+  "created_at" => row[:created_at]&.to_s,
+  "updated_at" => row[:updated_at]&.to_s
+}
 end
 
   def attempt_answers(attempt_id)
@@ -164,6 +166,11 @@ end
       "completed_by_teacher" => row[:completed_by_teacher],
       "teacher_notes" => row[:teacher_notes]
     }
+  end
+
+  def schedule_teacher_column
+    columns = DB.schema(:schedules).map { |col| col[0].to_sym }
+    columns.include?(:assigned_teacher_id) ? :assigned_teacher_id : :teacher_id
   end
 
   # =========================
@@ -295,7 +302,7 @@ end
     existing_reg = DB[:users].where(reg_number: reg_number).first
     return nil if existing_reg
 
-    now = Time.now
+    now = app_now
     id = DB[:users].insert(
       name: name,
       email: email,
@@ -314,7 +321,7 @@ end
     existing = DB[:users].where(Sequel.function(:lower, :email) => email.to_s.downcase).first
     return nil if existing
 
-    now = Time.now
+    now = app_now
     id = DB[:users].insert(
       name: name,
       email: email,
@@ -332,7 +339,7 @@ end
     existing = DB[:users].where(Sequel.function(:lower, :email) => email.to_s.downcase).first
     return nil if existing
 
-    now = Time.now
+    now = app_now
     id = DB[:users].insert(
       name: name,
       email: email,
@@ -631,7 +638,7 @@ end
   # QUESTION MANAGEMENT
   # =========================
   def add_question(question_text, option1, option2, option3, option4, correct_answer, difficulty = "medium", topic = "general")
-  now = Time.now
+  now = app_now
   DB[:questions].insert(
     text: question_text,
     option1: option1,
@@ -776,20 +783,25 @@ end
   # =========================
   # EXAM SCHEDULING
   # =========================
-  def create_exam_schedule(title, description, duration_minutes, scheduled_date, start_time, end_time, questions_list, assigned_teacher_id = nil)
-  now = Time.now
+  def create_exam_schedule(title, description, duration_minutes, scheduled_date, start_time, end_time, assigned_teacher_id, student_ids, question_ids)
+  now = app_now
+  teacher_column = schedule_teacher_column
 
-  schedule_id = DB[:schedules].insert(
+  data = {
     title: title,
     description: description,
-    duration_minutes: duration_minutes.to_i,
-    scheduled_date: Date.parse(scheduled_date.to_s),
+    duration_minutes: duration_minutes,
+    scheduled_date: scheduled_date,
     start_time: start_time,
     end_time: end_time,
     status: "scheduled",
-    teacher_id: assigned_teacher_id,
-    created_at: now
-  )
+    created_at: now,
+    updated_at: now
+  }
+
+  data[teacher_column] = assigned_teacher_id
+
+  schedule_id = DB[:schedules].insert(data)
 
   (questions_list || []).each_with_index do |question, index|
     question_id =
@@ -981,41 +993,41 @@ end
   # EXAM ATTEMPTS
   # =========================
   def create_exam_attempt(student_id, schedule_id)
-    existing_attempts = DB[:attempts]
-      .where(student_id: student_id, schedule_id: schedule_id)
-      .order(Sequel.desc(:start_time))
-      .all
+  existing_attempts = DB[:attempts]
+    .where(student_id: student_id, schedule_id: schedule_id)
+    .order(Sequel.desc(:start_time))
+    .all
 
-    if existing_attempts.any?
-      latest_attempt = attempt_row_to_hash(existing_attempts.first)
+  if existing_attempts.any?
+    latest_attempt = attempt_row_to_hash(existing_attempts.first)
 
-      if ["completed", "terminated_for_malpractice", "removed_for_malpractice"].include?(latest_attempt["status"])
-        puts "⛔ Blocked new attempt - final attempt exists: #{latest_attempt['status']}"
-        return nil
-      end
-
-      if latest_attempt["status"] == "in_progress"
-        puts "↩️ Returning existing in_progress attempt"
-        return latest_attempt
-      end
+    if ["completed", "terminated_for_malpractice", "removed_for_malpractice"].include?(latest_attempt["status"])
+      puts "⛔ Blocked new attempt - final attempt exists: #{latest_attempt['status']}"
+      return nil
     end
 
-    puts "✅ Creating new attempt for student #{student_id}"
-
-    now = Time.now
-    attempt_id = DB[:attempts].insert(
-      student_id: student_id,
-      schedule_id: schedule_id,
-      start_time: Time.now,
-      status: "in_progress",
-      score: 0,
-      violation_count: 0,
-      created_at: now,
-      updated_at: now
-    )
-
-    get_attempt(attempt_id)
+    if latest_attempt["status"] == "in_progress"
+      puts "↩️ Returning existing in_progress attempt"
+      return latest_attempt
+    end
   end
+
+  puts "✅ Creating new attempt for student #{student_id}"
+
+  now = app_now
+  attempt_id = DB[:attempts].insert(
+    student_id: student_id,
+    schedule_id: schedule_id,
+    start_time: now,
+    status: "in_progress",
+    score: 0,
+    violation_count: 0,
+    created_at: now,
+    updated_at: now
+  )
+
+  get_attempt(attempt_id)
+end
 
   def submit_exam_attempt(attempt_id, answers, score, feedback = nil, violations = [], warnings = [])
   attempt = DB[:attempts].where(id: attempt_id).first
@@ -1252,7 +1264,9 @@ def delete_all_questions
 end
 
 def update_exam(schedule_id, attrs = {})
-  DB[:schedules].where(id: schedule_id).update(
+  teacher_column = schedule_teacher_column
+
+  data = {
     title: attrs[:title],
     description: attrs[:description],
     duration_minutes: attrs[:duration_minutes],
@@ -1260,9 +1274,12 @@ def update_exam(schedule_id, attrs = {})
     start_time: attrs[:start_time],
     end_time: attrs[:end_time],
     status: attrs[:status],
-    teacher_id: attrs[:assigned_teacher_id],
-    updated_at: Time.now
-  )
+    updated_at: app_now
+  }
+
+  data[teacher_column] = attrs[:assigned_teacher_id]
+
+  DB[:schedules].where(id: schedule_id).update(data)
 
   if attrs[:question_ids]
     DB[:schedule_questions].where(schedule_id: schedule_id).delete
@@ -1415,7 +1432,6 @@ end
     }
   end
 
-  
 
   def generate_feedback(_attempt_id, answers, questions)
     score = 0
@@ -1467,7 +1483,7 @@ end
       updated_at: Time.now
     )
   else
-    now = Time.now
+    now = app_now
     DB[:results].insert(
       student_id: student_id,
       schedule_id: schedule_id,

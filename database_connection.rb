@@ -1,8 +1,7 @@
 require 'dotenv/load'
 ENV['TZ'] ||= ENV.fetch('APP_TIMEZONE', 'Asia/Kolkata')
-require "sequel"
-require "uri"
-
+require 'sequel'
+require 'uri'
 DB =
   if ENV["DATABASE_URL"]
     Sequel.connect(ENV["DATABASE_URL"])

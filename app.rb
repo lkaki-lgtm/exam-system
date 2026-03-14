@@ -602,31 +602,31 @@ get '/student/exam/:schedule_id' do
   end
 
   if validation[:attempt]
-    @attempt = validation[:attempt]
-  else
-    @attempt = db.create_exam_attempt(student_id, @schedule_id)
-    if @attempt.nil?
-      @message = "Unable to start exam. Please contact your teacher."
-      return erb :message
-    end
+  @attempt = validation[:attempt]
+else
+  @attempt = db.create_exam_attempt(student_id, @schedule_id)
+  if @attempt.nil?
+    @message = "Unable to start exam. Please contact your teacher."
+    return erb :message
   end
+end
 
-  attempt_start = Time.parse(@attempt["start_time"].to_s).getlocal(db.timezone_offset) rescue db.app_now
-  duration_seconds = @exam["duration_minutes"].to_i * 60
-  elapsed_seconds = (db.app_now - attempt_start).to_i
-  @remaining_seconds = [duration_seconds - elapsed_seconds, 0].max
+attempt_start = Time.parse(@attempt["start_time"].to_s).getlocal(db.timezone_offset) rescue db.app_now
+duration_seconds = @exam["duration_minutes"].to_i * 60
+elapsed_seconds = (db.app_now - attempt_start).to_i
+@remaining_seconds = [duration_seconds - elapsed_seconds, 0].max
 
-  @answered = []
-  if @attempt["answers"]
-    @attempt["answers"].each do |ans|
-      if ans && ans["answer"] && !ans["question_index"].nil?
-        @answered << ans["question_index"]
-      end
-    end
+@answered = []
+attempt_answers = @attempt["answers"] || []
+
+attempt_answers.each do |ans|
+  if ans && ans["answer"] && !ans["question_index"].nil?
+    @answered << ans["question_index"]
   end
+end
 
-  @questions = @exam["questions"]
-  @marked = @attempt["marked_questions"] || []
+@questions = @exam["questions"] || []
+@marked = @attempt["marked_questions"] || []
 
   erb :scheduled_exam
 end
